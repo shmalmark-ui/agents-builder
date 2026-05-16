@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>agents-builder.ru — Разработка ИИ-агентов</title>
+<meta name="description" content="Telegram-боты поддержки, sales-агенты с бронью звонка, ассистенты по базе знаний. Фикс-цена, 2–3 недели, делаю лично.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)">
+<script>
+  // Apply theme BEFORE first paint to prevent flash
+  (function() {
+    try {
+      var t = localStorage.getItem('ab-theme');
+      if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch(e) {}
+  })();
+</script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-elevated: #fafafa;
+    --bg-deep: #0a0a0a;
+    --ink: #0a0a0a;
+    --ink-secondary: #4b5563;
+    --ink-muted: #9ca3af;
+    --line: rgba(10, 10, 10, 0.08);
+    --line-strong: rgba(10, 10, 10, 0.14);
+    --accent: #0066ff;
+    --accent-soft: rgba(0, 102, 255, 0.08);
+    --nav-bg: rgba(255, 255, 255, 0.72);
+    --shimmer-highlight: rgba(255, 255, 255, 0.95);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 22px;
+    --radius-xl: 28px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 8px 24px -12px rgba(0,0,0,0.12);
+    --shadow-lg: 0 24px 60px -24px rgba(0,0,0,0.18);
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0a0a0c;
+    --bg-elevated: #16161c;
+    --bg-deep: #050507;
+    --ink: #f3f3f5;
+    --ink-secondary: #a8a8b2;
+    --ink-muted: #6a6a74;
+    --line: rgba(255, 255, 255, 0.07);
+    --line-strong: rgba(255, 255, 255, 0.14);
+    --accent: #4d8eff;
+    --accent-soft: rgba(77, 142, 255, 0.14);
+    --nav-bg: rgba(10, 10, 12, 0.72);
+    --shimmer-highlight: rgba(255, 255, 255, 0.7);
+    --chat-bubble: #20202a;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 8px 24px -12px rgba(0,0,0,0.6);
+    --shadow-lg: 0 24px 60px -24px rgba(0,0,0,0.8);
+    color-scheme: dark;
+  }
+
+  /* Smooth theme transition */
+  body, .nav, .nav-cta, .hero-status, .why-card, .solution, .demo, .demo-text,
+  .demo-visual, .chat-msg, .step, .stack-cell, .faq, .faq-item summary,
+  .btn, .not-for-list, .theme-toggle, .nav-brand {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body {
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    font-size: 16px;
+    letter-spacing: -0.011em;
+    overflow-x: hidden;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  img { max-width: 100%; display: block; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  .container--narrow { max-width: 940px; }
+  .container--wide { max-width: 1320px; }
+
+  .mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace; }
+  .label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    font-weight: 500;
+  }
+  .accent-text { color: var(--accent); }
+
+  /* ============ NAV ============ */
+  .nav {
+    position: sticky; top: 0;
+    background: var(--nav-bg);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--line);
+    z-index: 100;
+  }
+
+  /* Theme toggle button */
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .theme-toggle {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+    padding: 0;
+  }
+  .theme-toggle:hover { border-color: var(--line-strong); transform: scale(1.05); }
+  .theme-toggle:active { transform: scale(0.95); }
+  .theme-toggle svg { width: 15px; height: 15px; }
+  .theme-toggle .moon { display: none; }
+  :root[data-theme="dark"] .theme-toggle .sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle .moon { display: block; }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    max-width: 1320px; margin: 0 auto;
+  }
+  .nav-brand {
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .nav-brand .dot { color: var(--accent); }
+  .nav-links {
+    display: flex; gap: 28px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-secondary);
+  }
+  .nav-links a { transition: color 0.15s; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    background: var(--ink); color: var(--bg);
+    padding: 8px 16px; border-radius: 999px;
+    font-size: 13px; font-weight: 500;
+    transition: opacity 0.15s, transform 0.15s, background 0.2s, color 0.2s;
+  }
+  .nav-cta:hover { opacity: 0.85; }
+
+  /* ============ HERO ============ */
+  .hero {
+    padding: 120px 0 100px;
+    position: relative;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 64px;
+    align-items: start;
+  }
+  .hero-image-wrap {
+    position: relative;
+    margin-top: 20px;
+  }
+  .hero-image {
+    position: relative;
+  }
+  .hero-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .hero-status {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'Geist Mono', monospace; font-size: 12px;
+    color: var(--ink-secondary); font-weight: 500;
+    margin-bottom: 36px;
+    padding: 6px 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+  .hero-status .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #16a34a;
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5);
+    animation: pulse 2.2s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+    70%  { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+  }
+
+  h1.hero-title {
+    font-weight: 700;
+    font-size: clamp(40px, 5.6vw, 76px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    margin-bottom: 24px;
+    max-width: 14ch;
+  }
+  h1.hero-title .accent { color: var(--accent); }
+
+  /* Shimmer — highlight pass over existing text */
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    60%, 100% { background-position: -200% 0; }
+  }
+  .shimmer {
+    color: var(--accent);
+    position: relative;
+    display: inline-block;
+  }
+  .shimmer::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-image: linear-gradient(
+      110deg,
+      transparent 30%,
+      var(--shimmer-highlight) 48%,
+      var(--shimmer-highlight) 50%,
+      var(--shimmer-highlight) 52%,
+      transparent 70%
+    );
+    background-size: 220% 100%;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3.6s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Status pill shimmer line */
+  .hero-status {
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-status::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(110deg, transparent 0%, transparent 40%, rgba(0, 102, 255, 0.18) 50%, transparent 60%, transparent 100%);
+    animation: status-sweep 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes status-sweep {
+    0%, 30% { left: -100%; }
+    70%, 100% { left: 100%; }
+  }
+  h1.hero-title .grad {
+    background: linear-gradient(180deg, var(--ink) 0%, var(--ink-secondary) 95%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-sub {
+    font-size: 19px;
+    color: var(--ink-secondary);
+    max-width: 52ch;
+    margin: 0 0 36px;
+    line-height: 1.5;
+    font-weight: 400;
+    letter-spacing: -0.012em;
+  }
+
+  .hero-ctas {
+    display: flex; flex-wrap: wrap; gap: 12px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 24px;
+    font-size: 15px; font-weight: 500;
+    border-radius: 999px;
+    transition: transform 0.15s, background 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s;
+    cursor: pointer; border: 1px solid transparent;
+    letter-spacing: -0.011em;
+  }
+  .btn-primary {
+    background: var(--ink); color: var(--bg);
+  }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-secondary {
+    background: var(--bg-elevated); color: var(--ink);
+    border: 1px solid var(--line-strong);
+  }
+  .btn-secondary:hover { background: #f3f4f6; }
+  .btn .arr { display: inline-block; transition: transform 0.2s; font-size: 14px; }
+  .btn:hover .arr { transform: translateX(3px); }
+
+  .hero-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    margin-top: 80px;
+    padding-top: 36px;
+    border-top: 1px solid var(--line);
+    text-align: left;
+  }
+  .hero-stats .stat .num {
+    font-size: 38px;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .hero-stats .stat .num .unit { font-size: 18px; color: var(--ink-muted); font-weight: 400; }
+  .hero-stats .stat .num.compact { font-size: 16px; font-weight: 500; font-family: 'Geist Mono', monospace; letter-spacing: -0.02em; line-height: 1.3; }
+  .hero-stats .stat .lbl {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px; color: var(--ink-muted);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  /* ============ SECTION ============ */
+  section { padding: 120px 0; }
+  .section-head {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+  .section-head .eyebrow {
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px; color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    margin-bottom: 16px;
+    display: block;
+  }
+  .section-head h2 {
+    font-weight: 700;
+    font-size: clamp(36px, 5.2vw, 64px);
+    letter-spacing: -0.04em;
+    line-height: 1.02;
+    max-width: 20ch;
+    margin: 0 auto 16px;
+  }
+  .section-head h2 .grad {
+    background: linear-gradient(180deg, var(--ink) 0%, var(--ink-secondary) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .section-head p {
+    font-size: 18px;
+    color: var(--ink-secondary);
+    max-width: 56ch;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  /* ============ WHY-ME ============ */
+  .why-me { background: var(--bg-elevated); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 100px 0; }
+  .why-me-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    margin-top: 48px;
+  }
+  .why-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  }
+  .why-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+  .why-card .icon {
+    width: 40px; height: 40px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 24px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .why-card h4 {
+    font-weight: 600; font-size: 20px;
+    letter-spacing: -0.02em;
+    line-height: 1.2; margin-bottom: 10px;
+  }
+  .why-card p { color: var(--ink-secondary); font-size: 15px; line-height: 1.55; }
+
+  /* ============ SOLUTIONS ============ */
+  .solutions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .solution {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    padding: 36px 32px;
+    display: flex; flex-direction: column;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+  .solution:hover {
+    border-color: var(--line-strong);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+  .solution .idx {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px; color: var(--accent);
+    letter-spacing: 0.04em;
+    font-weight: 500;
+    margin-bottom: 24px;
+  }
+  .solution h3 {
+    font-weight: 600; font-size: 24px;
+    line-height: 1.15; letter-spacing: -0.025em;
+    margin-bottom: 14px;
+    max-width: 14ch;
+  }
+  .solution .desc {
+    color: var(--ink-secondary); font-size: 15px;
+    margin-bottom: 20px; flex-grow: 1; line-height: 1.5;
+  }
+  .solution .payback {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 24px;
+    display: inline-block;
+    align-self: flex-start;
+    letter-spacing: -0.01em;
+  }
+  .solution .features {
+    list-style: none; margin-bottom: 28px;
+    font-size: 14px;
+  }
+  .solution .features li {
+    padding: 7px 0;
+    border-top: 1px solid var(--line);
+    display: flex; align-items: baseline; gap: 10px;
+    color: var(--ink-secondary);
+  }
+  .solution .features li:last-child { border-bottom: 1px solid var(--line); }
+  .solution .features li::before {
+    content: '';
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--ink-muted);
+    flex-shrink: 0;
+  }
+  .solution .pricing {
+    margin-top: auto;
+    padding-top: 24px;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  }
+  .solution .price {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+  .solution .price .from {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px; color: var(--ink-muted);
+    font-weight: 500;
+    display: block; margin-bottom: 2px;
+  }
+  .solution .duration {
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px; color: var(--ink-muted);
+    text-align: right;
+    font-weight: 500;
+  }
+  .solution .duration .v { color: var(--ink); font-size: 13px; display: block; font-weight: 600; letter-spacing: -0.01em; }
+
+  .custom-block {
+    margin-top: 16px;
+    background: var(--bg-deep);
+    color: #fff;
+    border-radius: var(--radius-xl);
+    padding: 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap;
+  }
+  .custom-block h4 {
+    font-size: 24px; font-weight: 600;
+    letter-spacing: -0.025em; line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .custom-block p { color: rgba(255,255,255,0.6); font-size: 15px; max-width: 56ch; line-height: 1.5; }
+  .custom-block .btn-light {
+    background: #ffffff; color: #0a0a0a;
+    border: 0;
+  }
+  .custom-block .btn-light:hover { background: rgba(255,255,255,0.92); }
+
+  /* ============ DEMOS ============ */
+  .demos { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  .demo {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+  .demo:nth-child(even) { grid-template-columns: 1.1fr 1fr; }
+  .demo:nth-child(even) .demo-text { order: 2; border-left: 1px solid var(--line); border-right: 0; }
+  .demo:nth-child(even) .demo-visual { order: 1; }
+
+  .demo-text {
+    padding: 56px 48px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    border-right: 1px solid var(--line);
+  }
+  .demo-text .idx {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px; color: var(--accent);
+    letter-spacing: 0.04em;
+    font-weight: 500;
+    margin-bottom: 18px;
+  }
+  .demo-text h3 {
+    font-weight: 600; font-size: 32px;
+    line-height: 1.1; letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+  .demo-text .desc { color: var(--ink-secondary); font-size: 16px; line-height: 1.55; margin-bottom: 28px; }
+  .demo-text .specs {
+    list-style: none;
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .demo-text .specs li {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    display: flex; gap: 16px;
+  }
+  .demo-text .specs li .k { color: var(--ink-muted); min-width: 100px; letter-spacing: 0; font-weight: 500; }
+  .demo-text .specs li .v { color: var(--ink); font-weight: 500; }
+
+  /* Chat mock */
+  .demo-visual {
+    background: var(--bg-elevated);
+    padding: 36px;
+    display: flex; flex-direction: column; gap: 10px;
+    min-height: 480px;
+    position: relative;
+    overflow: hidden;
+  }
+  .demo-visual::before {
+    content: attr(data-app);
+    position: absolute; top: 16px; right: 20px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px; color: var(--ink-muted);
+    font-weight: 500;
+  }
+  .chat-msg {
+    background: var(--chat-bubble, var(--bg));
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    border-radius: 18px 18px 18px 4px;
+    font-size: 14px;
+    max-width: 80%;
+    box-shadow: var(--shadow-sm);
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+  .chat-msg.user {
+    background: var(--accent); color: #fff;
+    border-color: var(--accent);
+    align-self: flex-end;
+    border-radius: 18px 18px 4px 18px;
+  }
+  .chat-msg .who {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.06em; opacity: 0.65;
+    display: block; margin-bottom: 3px;
+    font-weight: 500;
+  }
+  .chat-meta {
+    margin-top: auto;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px; color: var(--ink-muted);
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between;
+    font-weight: 500;
+  }
+
+  /* ============ PROCESS ============ */
+  .process {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .step {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 32px 24px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .step:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+  .step .step-n {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+  .step h4 {
+    font-size: 19px; font-weight: 600;
+    letter-spacing: -0.02em; line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .step p { color: var(--ink-secondary); font-size: 14px; line-height: 1.5; }
+  .step .dur {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px; color: var(--ink-muted);
+    letter-spacing: 0.04em;
+    font-weight: 500;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ============ STACK ============ */
+  .stack {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .stack-cell {
+    background: var(--bg);
+    padding: 28px 24px;
+  }
+  .stack-cell .label { display: block; margin-bottom: 4px; }
+  .stack-cell .why-line {
+    font-size: 13px;
+    color: var(--ink-secondary);
+    margin-bottom: 16px;
+    line-height: 1.45;
+  }
+  .stack-cell ul { list-style: none; }
+  .stack-cell li {
+    font-size: 14px;
+    padding: 5px 0;
+    color: var(--ink);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  /* ============ NOT-FOR ============ */
+  .not-for {
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 100px 0;
+  }
+  .not-for-inner {
+    max-width: 880px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .not-for h2 {
+    font-weight: 700; font-size: clamp(32px, 4.4vw, 52px);
+    letter-spacing: -0.04em; line-height: 1.05;
+    margin-bottom: 16px;
+  }
+  .not-for .lede {
+    color: var(--ink-secondary); font-size: 17px;
+    max-width: 56ch; margin: 0 auto 44px;
+    line-height: 1.5;
+  }
+  .not-for-list {
+    list-style: none;
+    text-align: left;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .not-for-list li {
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--line);
+    display: flex; gap: 18px;
+    align-items: flex-start;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .not-for-list li:last-child { border-bottom: 0; }
+  .not-for-list li .x {
+    font-family: 'Geist Mono', monospace;
+    color: var(--ink-muted);
+    font-size: 13px;
+    flex-shrink: 0;
+    width: 28px;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  .not-for-list li .text { color: var(--ink); font-weight: 500; letter-spacing: -0.012em; }
+  .not-for-list li .text small {
+    display: block;
+    color: var(--ink-secondary);
+    font-weight: 400;
+    font-size: 14px;
+    margin-top: 3px;
+  }
+
+  /* ============ FAQ ============ */
+  .faq {
+    display: flex; flex-direction: column;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .faq-item {
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .faq-item:last-child { border-bottom: 0; }
+  .faq-item summary {
+    display: flex; align-items: center; gap: 20px;
+    list-style: none;
+    padding: 24px 28px;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.022em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .faq-item summary:hover { background: var(--bg-elevated); }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary .q-n {
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-muted);
+    flex-shrink: 0;
+    width: 28px;
+    font-weight: 500;
+  }
+  .faq-item summary .q-toggle {
+    margin-left: auto;
+    color: var(--ink-muted);
+    transition: transform 0.25s, color 0.2s;
+    flex-shrink: 0;
+    width: 16px; height: 16px;
+    position: relative;
+  }
+  .faq-item summary .q-toggle::before,
+  .faq-item summary .q-toggle::after {
+    content: ''; position: absolute;
+    background: currentColor;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .faq-item summary .q-toggle::before { width: 12px; height: 1.5px; }
+  .faq-item summary .q-toggle::after { width: 1.5px; height: 12px; transition: transform 0.25s; }
+  .faq-item[open] summary .q-toggle::after { transform: translate(-50%, -50%) rotate(90deg); }
+  .faq-item[open] summary { background: var(--bg-elevated); }
+  .faq-item[open] summary .q-toggle { color: var(--accent); }
+  .faq-item .a {
+    padding: 0 28px 28px 76px;
+    color: var(--ink-secondary);
+    max-width: 70ch; line-height: 1.55;
+    font-size: 16px;
+    letter-spacing: -0.011em;
+  }
+
+  /* ============ CTA ============ */
+  .cta-section {
+    background: var(--bg-deep);
+    color: #fff;
+    border-radius: var(--radius-xl);
+    padding: 100px 64px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-section::before {
+    content: ''; position: absolute;
+    inset: -40%;
+    background:
+      radial-gradient(ellipse 50% 40% at 50% 0%, rgba(0, 102, 255, 0.35), transparent 60%);
+    pointer-events: none;
+  }
+  .cta-section > * { position: relative; z-index: 1; }
+  .cta-section h2 {
+    font-weight: 700;
+    font-size: clamp(40px, 5.6vw, 72px);
+    letter-spacing: -0.045em; line-height: 1;
+    margin-bottom: 20px;
+    max-width: 18ch;
+    margin-left: auto; margin-right: auto;
+  }
+  .cta-section h2 .grad {
+    background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.5) 95%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .cta-section p {
+    font-size: 18px; color: rgba(255,255,255,0.65);
+    max-width: 560px; margin: 0 auto 40px;
+    line-height: 1.5;
+  }
+  .cta-section .btn-primary {
+    background: #ffffff; color: #0a0a0a;
+  }
+  .cta-section .btn-primary:hover { background: rgba(255,255,255,0.92); }
+  .cta-section .btn-secondary {
+    background: rgba(255,255,255,0.06); color: #fff;
+    border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(8px);
+  }
+  .cta-section .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+  .cta-meta {
+    margin-top: 36px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+
+  /* ============ FOOTER ============ */
+  .footer {
+    padding: 56px 0 40px;
+    border-top: 1px solid var(--line);
+  }
+  .footer-inner {
+    display: flex; flex-wrap: wrap;
+    align-items: flex-end; justify-content: space-between;
+    gap: 32px;
+  }
+  .footer-brand {
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+  }
+  .footer-brand .dot { color: var(--accent); }
+  .footer-brand p {
+    font-weight: 400;
+    font-size: 14px; color: var(--ink-secondary);
+    margin-top: 6px;
+    letter-spacing: -0.011em;
+  }
+  .footer-meta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px; color: var(--ink-muted);
+    text-align: right;
+    font-weight: 500;
+  }
+  .footer-links { display: flex; gap: 18px; margin-bottom: 8px; justify-content: flex-end; font-size: 14px; }
+  .footer-links a { color: var(--ink-secondary); transition: color 0.15s; font-weight: 500; }
+  .footer-links a:hover { color: var(--ink); }
+
+  /* ============ MODAL ============ */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    padding: 36px 36px 32px;
+    max-width: 480px;
+    width: 100%;
+    position: relative;
+    transform: translateY(16px) scale(0.985);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.25s ease;
+    box-shadow: 0 32px 80px -32px rgba(0,0,0,0.4);
+  }
+  .modal-backdrop.open .modal { transform: translateY(0) scale(1); opacity: 1; }
+  .modal-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: var(--ink-secondary);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    padding: 0;
+  }
+  .modal-close:hover { background: var(--bg-elevated); color: var(--ink); }
+  .modal-close svg { width: 14px; height: 14px; }
+  .modal h3 {
+    font-weight: 600; font-size: 22px;
+    letter-spacing: -0.028em;
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .modal-note {
+    color: var(--ink-secondary);
+    font-size: 14px;
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
+  .modal-form { display: flex; flex-direction: column; gap: 10px; }
+  .modal-form textarea, .modal-form input {
+    font-family: inherit;
+    background: var(--bg-elevated);
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 15px;
+    color: var(--ink);
+    resize: vertical;
+    letter-spacing: -0.011em;
+    transition: border-color 0.15s, background 0.15s;
+    width: 100%;
+  }
+  .modal-form textarea:focus, .modal-form input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--bg);
+  }
+  .modal-form textarea { min-height: 110px; }
+  .modal-form textarea::placeholder, .modal-form input::placeholder { color: var(--ink-muted); }
+  .modal-form button { margin-top: 8px; justify-content: center; padding: 14px; }
+  .modal-form button[disabled] { opacity: 0.6; cursor: wait; }
+  .modal-error {
+    color: #c2410c;
+    background: rgba(194, 65, 12, 0.08);
+    border: 1px solid rgba(194, 65, 12, 0.2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  :root[data-theme="dark"] .modal-error {
+    color: #ff8a5a;
+    background: rgba(255, 138, 90, 0.08);
+    border-color: rgba(255, 138, 90, 0.25);
+  }
+  .modal-success { text-align: center; padding: 12px 0 4px; }
+  .modal-success .check {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+  }
+  .modal-success h4 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    margin-bottom: 8px;
+  }
+  .modal-success p {
+    color: var(--ink-secondary);
+    margin-bottom: 22px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .modal-footnote {
+    margin-top: 16px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-muted);
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 960px) {
+    .nav-links { display: none; }
+    .hero { padding: 64px 0 80px; }
+    .hero-grid {
+      grid-template-columns: 1fr;
+      gap: 40px;
+      text-align: center;
+    }
+    .hero-content .hero-status { display: inline-flex; }
+    .hero-content .hero-title { margin-left: auto; margin-right: auto; }
+    .hero-content .hero-sub { margin-left: auto; margin-right: auto; }
+    .hero-content .hero-ctas { justify-content: center; }
+    .hero-image-wrap { max-width: 420px; margin: 0 auto; order: -1; margin-top: 0; }
+    .hero-stats { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    section { padding: 80px 0; }
+    .why-me, .not-for { padding: 70px 0; }
+    .solutions { grid-template-columns: 1fr; }
+    .why-me-grid { grid-template-columns: 1fr; }
+    .demo { grid-template-columns: 1fr; }
+    .demo:nth-child(even) { grid-template-columns: 1fr; }
+    .demo:nth-child(even) .demo-text { order: 1; border-left: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+    .demo:nth-child(even) .demo-visual { order: 2; }
+    .demo-text { padding: 40px 28px; border-right: 0; border-bottom: 1px solid var(--line); }
+    .demo-visual { min-height: 400px; padding: 28px; }
+    .process { grid-template-columns: 1fr 1fr; }
+    .stack { grid-template-columns: 1fr 1fr; }
+    .cta-section { padding: 64px 28px; }
+    .faq-item summary { padding: 20px 24px; font-size: 16px; gap: 14px; }
+    .faq-item .a { padding: 0 24px 24px 66px; }
+  }
+  @media (max-width: 540px) {
+    .hero-stats { grid-template-columns: 1fr 1fr; }
+    .process { grid-template-columns: 1fr; }
+    .stack { grid-template-columns: 1fr; }
+    .nav-cta { padding: 7px 12px; font-size: 12px; }
+    .custom-block { padding: 32px 24px; }
+    .custom-block h4 { font-size: 20px; }
+  }
+
+  /* ============ ANIMATIONS ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .reveal { opacity: 0; animation: fadeUp 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
+  .reveal-delay-1 { animation-delay: 0.08s; }
+  .reveal-delay-2 { animation-delay: 0.16s; }
+  .reveal-delay-3 { animation-delay: 0.24s; }
+  .reveal-delay-4 { animation-delay: 0.32s; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-brand">agents-builder<span class="dot">.</span>ru</a>
+    <div class="nav-links">
+      <a href="#solutions">Решения</a>
+      <a href="#demos">Демо</a>
+      <a href="#process">Процесс</a>
+      <a href="#stack">Стек</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" aria-label="Переключить тему" type="button">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+        </svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+      <a href="#" class="nav-cta" data-modal-open>Обсудить</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-content">
+        <div class="hero-status reveal">
+          <span class="pulse"></span>
+          Доступно: 2 слота в мае
+        </div>
+        <h1 class="hero-title reveal reveal-delay-1">
+          ИИ-агенты, которые работают <span class="shimmer" data-text="по-настоящему">по-настоящему</span>.
+        </h1>
+        <p class="hero-sub reveal reveal-delay-2">
+          Боты для поддержки в Telegram, агенты, которые сами назначают звонки, помощники по вашим документам. Цена не меняется по ходу проекта, срок 2–3 недели, всё делаю сам — без посредников и потерянных писем.
+        </p>
+        <div class="hero-ctas reveal reveal-delay-3">
+          <a href="#" class="btn btn-primary" data-modal-open>Обсудить задачу <span class="arr">→</span></a>
+          <a href="#demos" class="btn btn-secondary">Посмотреть демо</a>
+        </div>
+      </div>
+
+      <div class="hero-image-wrap reveal reveal-delay-2">
+        <div class="hero-image">
+          <picture>
+            <source type="image/webp" srcset="assets/hero-robot.webp 1x, assets/hero-robot@2x.webp 2x">
+            <img src="assets/hero-robot.png" srcset="assets/hero-robot.png 1x, assets/hero-robot@2x.png 2x" alt="Дружелюбный белый ИИ-агент" width="800" height="450" loading="eager" fetchpriority="high">
+          </picture>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-stats reveal reveal-delay-4">
+      <div class="stat">
+        <div class="num">3</div>
+        <div class="lbl">типовых решения</div>
+      </div>
+      <div class="stat">
+        <div class="num">2–3<span class="unit"> нед</span></div>
+        <div class="lbl">срок до прода</div>
+      </div>
+      <div class="stat">
+        <div class="num">от 80k<span class="unit"> ₽</span></div>
+        <div class="lbl">фиксированная цена</div>
+      </div>
+      <div class="stat">
+        <div class="num compact">Python · LangGraph<br>OpenAI · Claude</div>
+        <div class="lbl">стек</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY ME, NOT AGENCY -->
+<section class="why-me">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Почему со мной, а не с агентством</span>
+      <h2><span class="grad">Один человек делает всё.</span></h2>
+      <p>Без менеджеров, без писем на 12 человек в копии, без «давайте уточним у разработчика». Тот же человек на первом звонке, на запуске и через полгода — когда нужно что-то поправить.</p>
+    </div>
+    <div class="why-me-grid">
+      <div class="why-card">
+        <div class="icon">01</div>
+        <h4>Пишете мне напрямую</h4>
+        <p>Не менеджеру, не помощнику. Тому самому человеку, который делает агента. Любой вопрос — ответ в течение пары часов, без передачи по цепочке.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">02</div>
+        <h4>Цена не растёт по ходу</h4>
+        <p>Цена и срок записаны в плане в первый день. Никаких «появились новые сложности, нужно ещё неделю и доплату».</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">03</div>
+        <h4>Никаких стажёров</h4>
+        <p>Не передаю проект другим людям, не сажаю на него начинающих. Каждый агент собран моими руками, от первой строчки до запуска.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOLUTIONS -->
+<section id="solutions">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Решения</span>
+      <h2>Три готовых формата.</h2>
+      <p>Понятная цена, понятный срок, понятно, что внутри. Стартуем в тот же день, как договорились о задаче.</p>
+    </div>
+
+    <div class="solutions">
+      <div class="solution">
+        <div class="idx">01 / Support</div>
+        <h3>Бот поддержки в Telegram</h3>
+        <p class="desc">Отвечает на частые вопросы, знает ваш продукт. Если не уверен в ответе — передаёт диалог живому оператору.</p>
+        <div class="payback">↓ Снимает ≈ 3 часа работы оператора в день</div>
+        <ul class="features">
+          <li>Отвечает по вашим документам</li>
+          <li>Передаёт диалог человеку</li>
+          <li>Все вопросы клиентов — в Google Таблице</li>
+          <li>Картинки, кнопки, файлы</li>
+        </ul>
+        <div class="pricing">
+          <div class="price"><span class="from">от</span>80 000 ₽</div>
+          <div class="duration"><span class="v">10 дней</span>срок</div>
+        </div>
+      </div>
+
+      <div class="solution">
+        <div class="idx">02 / Sales</div>
+        <h3>Агент, который сам назначает звонки</h3>
+        <p class="desc">Узнаёт у клиента бюджет, сроки и задачу. Сам подбирает время в Calendly, отправляет данные в вашу CRM.</p>
+        <div class="payback">↗ Окупается с 1–2 успешных звонков</div>
+        <ul class="features">
+          <li>Вопросы подстраиваются под нишу</li>
+          <li>Сам бронирует время в Calendly</li>
+          <li>Отправляет заявку в Bitrix24 / AmoCRM</li>
+          <li>Уведомления в Slack или Telegram</li>
+        </ul>
+        <div class="pricing">
+          <div class="price"><span class="from">от</span>120 000 ₽</div>
+          <div class="duration"><span class="v">2 недели</span>срок</div>
+        </div>
+      </div>
+
+      <div class="solution">
+        <div class="idx">03 / Knowledge</div>
+        <h3>Помощник по вашим документам</h3>
+        <p class="desc">Загружаете PDF, Notion, Google Документы — получаете помощника, который отвечает по вашим материалам и показывает, откуда взял ответ.</p>
+        <div class="payback">⏱ Экономит ≈ 40 минут поиска в день</div>
+        <ul class="features">
+          <li>Понимает PDF, Notion, Документы, сайты</li>
+          <li>Показывает, из какого документа ответ</li>
+          <li>Разные права для разных сотрудников</li>
+          <li>Работает в Telegram или на сайте</li>
+        </ul>
+        <div class="pricing">
+          <div class="price"><span class="from">от</span>150 000 ₽</div>
+          <div class="duration"><span class="v">2–3 нед</span>срок</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="custom-block">
+      <div>
+        <h4>Не из списка?</h4>
+        <p>Сделаю под вашу задачу: обработка документов, помощник в маркетинге, несколько агентов в связке. Оценю срок и цену за один день.</p>
+      </div>
+      <a href="#" class="btn btn-light" data-modal-open>Обсудить задачу <span class="arr">→</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- DEMOS -->
+<section id="demos">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Демо</span>
+      <h2>Можно потрогать.</h2>
+      <p>Три рабочих агента, которых можно открыть и пообщаться. Не картинки и не рассказы — живые диалоги, чтобы вы увидели, как это работает.</p>
+    </div>
+
+    <div class="demos">
+      <div class="demo">
+        <div class="demo-text">
+          <div class="idx">Демо · 01 / Support</div>
+          <h3>Бот «Анна» — поддержка кофейни</h3>
+          <p class="desc">Отвечает на вопросы про меню, часы работы, бронь столика и доставку. Знает 40 страниц внутренних правил. Когда вопрос не по теме — сразу зовёт менеджера.</p>
+          <ul class="specs">
+            <li><span class="k">Стек</span><span class="v">Python · LangGraph · GPT-4o-mini</span></li>
+            <li><span class="k">Канал</span><span class="v">Telegram Bot API</span></li>
+            <li><span class="k">База</span><span class="v">Qdrant (RAG, 40 doc)</span></li>
+            <li><span class="k">Время ответа</span><span class="v">≈ 1.2 с</span></li>
+          </ul>
+        </div>
+        <div class="demo-visual" data-app="t.me/anna_demo_bot">
+          <div class="chat-msg user">
+            <span class="who">Клиент</span>
+            До скольки вы работаете в субботу?
+          </div>
+          <div class="chat-msg">
+            <span class="who">Анна · бот</span>
+            В субботу мы открыты с 9:00 до 23:00.<br>
+            Кстати, можно забронировать столик прямо здесь — хотите?
+          </div>
+          <div class="chat-msg user">
+            <span class="who">Клиент</span>
+            Да, на 7 вечера на двоих
+          </div>
+          <div class="chat-msg">
+            <span class="who">Анна · бот</span>
+            Записала: суббота, 19:00, столик на двоих. На какое имя оформить бронь?
+          </div>
+          <div class="chat-meta">
+            <span>3 сообщения · 4.1 с</span>
+            <span>RAG hit: 2/2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-text">
+          <div class="idx">Демо · 02 / Sales</div>
+          <h3>Агент-помощник в продажах</h3>
+          <p class="desc">Стоит в окошке на сайте веб-агентства. За 5–7 сообщений узнаёт всё нужное (бюджет, сроки, тип проекта), сам бронирует звонок в Calendly и отправляет заявку в Bitrix24 с заполненными полями.</p>
+          <ul class="specs">
+            <li><span class="k">Стек</span><span class="v">Node.js · LangGraph · Claude Sonnet</span></li>
+            <li><span class="k">Канал</span><span class="v">Web-widget (custom)</span></li>
+            <li><span class="k">Интеграции</span><span class="v">Calendly · Bitrix24 · Slack</span></li>
+            <li><span class="k">Конверсия</span><span class="v">≈ 38% в назначенный звонок</span></li>
+          </ul>
+        </div>
+        <div class="demo-visual" data-app="widget · agency.example">
+          <div class="chat-msg">
+            <span class="who">Агент</span>
+            Здравствуйте. Помогу понять, подходим ли мы для вашей задачи. Что вы хотите сделать?
+          </div>
+          <div class="chat-msg user">
+            <span class="who">Клиент</span>
+            Нужен лендинг для запуска онлайн-курса. Старт через 3 недели.
+          </div>
+          <div class="chat-msg">
+            <span class="who">Агент</span>
+            Понял. Подскажите ориентировочный бюджет — это поможет сразу предложить адекватный формат.
+          </div>
+          <div class="chat-msg user">
+            <span class="who">Клиент</span>
+            До 250 тыс. ₽
+          </div>
+          <div class="chat-msg">
+            <span class="who">Агент</span>
+            Это рабочий бюджет. Готов забронировать 30 минут на этой неделе? Свободно: Чт 15:00, Пт 11:00.
+          </div>
+          <div class="chat-meta">
+            <span>5 сообщений · квалифицирован</span>
+            <span>→ Calendly · Bitrix24</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-text">
+          <div class="idx">Демо · 03 / Knowledge</div>
+          <h3>Помощник по внутренним правилам</h3>
+          <p class="desc">Внутренний помощник для сотрудников. Загружено 180 страниц правил компании (отпуска, командировки, документы). Отвечает и показывает, в каком документе и пункте написано.</p>
+          <ul class="specs">
+            <li><span class="k">Стек</span><span class="v">Python · LlamaIndex · GPT-4o</span></li>
+            <li><span class="k">Канал</span><span class="v">Telegram + Web</span></li>
+            <li><span class="k">База</span><span class="v">PostgreSQL + pgvector</span></li>
+            <li><span class="k">Точность</span><span class="v">≈ 92% с цитатой</span></li>
+          </ul>
+        </div>
+        <div class="demo-visual" data-app="t.me/regulations_bot">
+          <div class="chat-msg user">
+            <span class="who">Сотрудник</span>
+            За сколько дней нужно подавать заявку на отпуск?
+          </div>
+          <div class="chat-msg">
+            <span class="who">Ассистент</span>
+            Заявка на оплачиваемый отпуск подаётся <b>не позднее чем за 14 календарных дней</b> до даты начала отпуска.<br><br>
+            <span style="font-size:11px;color:var(--ink-muted);font-family:'Geist Mono'">📎 Регламент HR-2024, п. 4.2.1</span>
+          </div>
+          <div class="chat-msg user">
+            <span class="who">Сотрудник</span>
+            А если срочно нужен отгул?
+          </div>
+          <div class="chat-msg">
+            <span class="who">Ассистент</span>
+            Срочный отгул оформляется через прямого руководителя устно, с последующим оформлением в течение 3 рабочих дней.<br><br>
+            <span style="font-size:11px;color:var(--ink-muted);font-family:'Geist Mono'">📎 Регламент HR-2024, п. 4.5.3</span>
+          </div>
+          <div class="chat-meta">
+            <span>2 цитаты найдено</span>
+            <span>conf: 0.94 / 0.91</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Процесс</span>
+      <h2>От разговора до запуска — 4 шага.</h2>
+      <p>Без долгих согласований. Понятные точки контроля и реальные сроки.</p>
+    </div>
+
+    <div class="process">
+      <div class="step">
+        <div class="step-n">01 →</div>
+        <h4>Знакомство</h4>
+        <p>20-минутный звонок: задача, ограничения, для кого делаем агента, что у вас уже есть — данные и системы.</p>
+        <div class="dur">День 1</div>
+      </div>
+      <div class="step">
+        <div class="step-n">02 →</div>
+        <h4>План и цена</h4>
+        <p>Документ: что именно делаем, как устроено внутри, точная цена и срок. Согласовали — стартую в тот же день.</p>
+        <div class="dur">День 2–3</div>
+      </div>
+      <div class="step">
+        <div class="step-n">03 →</div>
+        <h4>Рабочая версия</h4>
+        <p>Готовый агент в Telegram (или там, где договорились). Тестируете на настоящих запросах, я записываю правки.</p>
+        <div class="dur">Неделя 1</div>
+      </div>
+      <div class="step">
+        <div class="step-n">04</div>
+        <h4>Запуск + поддержка</h4>
+        <p>Размещаю на вашем сервере, настраиваю мониторинг, показываю команде, как пользоваться. 2 недели бесплатной поддержки.</p>
+        <div class="dur">Неделя 2–3</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STACK -->
+<section id="stack">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Технологии</span>
+      <h2>Инструменты подбираю под задачу.</h2>
+      <p>Не зацикливаюсь на одних библиотеках. Для каждого проекта беру то, что даст лучший результат за ваши деньги.</p>
+    </div>
+
+    <div class="stack">
+      <div class="stack-cell">
+        <span class="label">Модели ИИ</span>
+        <p class="why-line">Когда важно качество — OpenAI или Claude. Когда важна цена и хранение данных у вас — местные модели.</p>
+        <ul>
+          <li>OpenAI · GPT-4o</li>
+          <li>Anthropic Claude</li>
+          <li>YandexGPT / GigaChat</li>
+          <li>Свои модели · Llama, Qwen</li>
+        </ul>
+      </div>
+      <div class="stack-cell">
+        <span class="label">Библиотеки</span>
+        <p class="why-line">Для сложной логики беру LangGraph. Когда библиотека только мешает — пишу с нуля.</p>
+        <ul>
+          <li>LangGraph</li>
+          <li>LangChain</li>
+          <li>LlamaIndex</li>
+          <li>Свой код · FastAPI</li>
+        </ul>
+      </div>
+      <div class="stack-cell">
+        <span class="label">Поиск по документам</span>
+        <p class="why-line">От 10 документов до десятков тысяч — подбираю хранилище под объём и нагрузку.</p>
+        <ul>
+          <li>Qdrant</li>
+          <li>pgvector</li>
+          <li>Chroma</li>
+          <li>Pinecone</li>
+        </ul>
+      </div>
+      <div class="stack-cell">
+        <span class="label">Каналы</span>
+        <p class="why-line">Агент живёт там, где ваши клиенты — а не там, где вам удобно его подключить.</p>
+        <ul>
+          <li>Telegram</li>
+          <li>WhatsApp Business</li>
+          <li>VK Messenger</li>
+          <li>Окно на сайте</li>
+        </ul>
+      </div>
+      <div class="stack-cell">
+        <span class="label">Серверная часть</span>
+        <p class="why-line">Делаю не только сам ИИ, но и всё, что нужно вокруг — чтобы он стабильно работал.</p>
+        <ul>
+          <li>Python · FastAPI</li>
+          <li>Node.js · Hono, Express</li>
+          <li>PostgreSQL</li>
+          <li>Redis</li>
+        </ul>
+      </div>
+      <div class="stack-cell">
+        <span class="label">CRM и связки</span>
+        <p class="why-line">Не сторонние сервисы с лимитами и подписками — прямая связь с вашими системами.</p>
+        <ul>
+          <li>Bitrix24, AmoCRM</li>
+          <li>Calendly, Google Календарь</li>
+          <li>Notion, Google Таблицы</li>
+          <li>Webhooks · REST · GraphQL</li>
+        </ul>
+      </div>
+      <div class="stack-cell">
+        <span class="label">Размещение</span>
+        <p class="why-line">На вашем сервере и в ваших аккаунтах. Без привязки ко мне или моему железу.</p>
+        <ul>
+          <li>Docker · Compose</li>
+          <li>Coolify / Dokku</li>
+          <li>Timeweb, Selectel, Hetzner</li>
+          <li>Cloudflare Workers</li>
+        </ul>
+      </div>
+      <div class="stack-cell">
+        <span class="label">Мониторинг</span>
+        <p class="why-line">Видно каждый диалог — поэтому агента можно улучшать, а не гадать, что пошло не так.</p>
+        <ul>
+          <li>Langfuse, Arize Phoenix</li>
+          <li>Sentry</li>
+          <li>Prometheus + Grafana</li>
+          <li>Запись всех диалогов</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NOT FOR -->
+<section class="not-for">
+  <div class="container">
+    <div class="not-for-inner">
+      <span class="eyebrow" style="font-family: 'Geist Mono', monospace; font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; margin-bottom: 16px; display: block;">Честно</span>
+      <h2>Кому я <span style="color: var(--ink-muted);">не подойду</span>.</h2>
+      <p class="lede">Лучше сразу сказать честно, чем влезть в проект с неправильными ожиданиями. Если вы — один из этих случаев, посоветую, к кому пойти.</p>
+
+      <ul class="not-for-list">
+        <li>
+          <span class="x">01</span>
+          <span class="text">Большие банки и госструктуры
+            <small>Если нужны сертификаты, проверки безопасности и сервер в закрытом контуре — это другой уровень бумаг и сроков. Не моя сфера.</small>
+          </span>
+        </li>
+        <li>
+          <span class="x">02</span>
+          <span class="text">Голосовые роботы для звонков
+            <small>Распознавание речи, синтез голоса, сложная телефония — отдельная специальность. Я делаю агентов, которые общаются текстом.</small>
+          </span>
+        </li>
+        <li>
+          <span class="x">03</span>
+          <span class="text">Берёте разработчика в штат
+            <small>Я работаю как подрядчик: проект с фиксированным сроком и ценой. На полный день в команду — нет.</small>
+          </span>
+        </li>
+        <li>
+          <span class="x">04</span>
+          <span class="text">Бюджет меньше 50 000 ₽
+            <small>За такие деньги получится только простая обёртка без связок с вашими системами и поддержки. Для маленьких задач лучше посмотрите готовые сервисы.</small>
+          </span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container container--narrow">
+    <div class="section-head">
+      <span class="eyebrow">FAQ</span>
+      <h2>Частые вопросы.</h2>
+    </div>
+
+    <div class="faq">
+      <details class="faq-item">
+        <summary>
+          <span class="q-n">01</span>
+          На каких языках агент будет общаться?
+          <span class="q-toggle"></span>
+        </summary>
+        <div class="a">По умолчанию — русский. Английский, казахский, узбекский, любой европейский — обычно это одна настройка. Можно сделать так, что агент сам понимает язык собеседника и отвечает на нём — без доплаты.</div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          <span class="q-n">02</span>
+          Кто оплачивает токены OpenAI / Claude?
+          <span class="q-toggle"></span>
+        </summary>
+        <div class="a">Вы. На этапе плана я считаю прогноз: при среднем диалоге N сообщений и M диалогах в день выйдет ≈ X ₽ в месяц. У небольших ботов обычно 500–5000 ₽ в месяц. Для больших нагрузок настраиваем кэш и более дешёвые модели.</div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          <span class="q-n">03</span>
+          Можно ли разместить агента в РФ — без OpenAI?
+          <span class="q-toggle"></span>
+        </summary>
+        <div class="a">Да. Использую YandexGPT, GigaChat или модели, которые работают на вашем сервере (Llama, Qwen). Для простых задач — бот ответов на вопросы, поиск по документам — разница в качестве почти не видна. Если задача сложная, обсудим, что чем придётся пожертвовать.</div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          <span class="q-n">04</span>
+          Что если агент начнёт ошибаться в проде?
+          <span class="q-toggle"></span>
+        </summary>
+        <div class="a">Каждый агент записывает все диалоги. Раз в неделю смотрим самые проблемные — и я их «дотачиваю»: поправляю инструкции, добавляю примеры, меняю логику. Первые 2 недели после запуска — бесплатно.</div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          <span class="q-n">05</span>
+          Кому принадлежит код?
+          <span class="q-toggle"></span>
+        </summary>
+        <div class="a">Вам. После оплаты весь код — в вашем GitHub-репозитории, все ключи и доступы — на ваших аккаунтах. Никакой привязки ко мне или моему серверу.</div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          <span class="q-n">06</span>
+          Работаете по договору? Можно ли с НДС?
+          <span class="q-toggle"></span>
+        </summary>
+        <div class="a">Договор — да, обычный договор на разработку. С НДС работаю через ИП на ОСНО. Для большинства проектов использую УСН — это без НДС. Для крупного клиента могу провести через юрлицо-партнёр с НДС.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="contact" class="no-border">
+  <div class="container">
+    <div class="cta-section">
+      <h2><span class="grad">Расскажите, что нужно собрать.</span></h2>
+      <p>20 минут разговора — и через день у вас будет план: что именно делаем, как устроено внутри, точный срок и цена. Без оплаты и обязательств.</p>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;">
+        <a href="#" class="btn btn-primary" data-modal-open>Оставить задачу <span class="arr">→</span></a>
+      </div>
+      <div class="cta-meta">обычно отвечаю в течение 2 часов · пн–пт · MSK</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand">agents-builder<span class="dot">.</span>ru</div>
+        <p>Разработка ИИ-агентов. Москва / удалённо.</p>
+      </div>
+      <div>
+        <div class="footer-links">
+          <a href="#" data-modal-open>Связаться</a>
+        </div>
+        <div class="footer-meta">© 2026 · ИП Фамилия И.О. · ИНН ··········</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- CONTACT MODAL -->
+<div class="modal-backdrop" id="contactModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+    <button class="modal-close" type="button" aria-label="Закрыть">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+      </svg>
+    </button>
+    <div class="modal-form-wrap">
+      <h3 id="modal-title">Расскажите про задачу</h3>
+      <p class="modal-note">Опишите, что нужно собрать, и оставьте контакт. Свяжусь в течение пары часов.</p>
+      <form class="modal-form" novalidate>
+        <textarea name="task" required placeholder="Что нужно собрать? Например: бот поддержки для интернет-магазина с подключением к базе товаров и передачей в живой чат при сложных вопросах."></textarea>
+        <input type="text" name="contact" required placeholder="Ваш Telegram, email или телефон">
+        <!-- honeypot — реальные люди это поле не видят, боты заполнят -->
+        <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;height:0;width:0;">
+        <div class="modal-error" hidden></div>
+        <button type="submit" class="btn btn-primary">Отправить <span class="arr">→</span></button>
+      </form>
+      <div class="modal-footnote">данные передаются только мне · не использую CRM и рассылки</div>
+    </div>
+    <div class="modal-success" hidden>
+      <div class="check">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h4>Задача принята</h4>
+      <p>Сохранил вашу задачу и контакт. Свяжусь по указанному способу в течение пары часов.</p>
+      <button type="button" class="btn btn-secondary modal-close" style="position:static;width:auto;height:auto;border-radius:999px;padding:12px 24px;">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Contact modal
+  (function() {
+    var modal = document.getElementById('contactModal');
+    if (!modal) return;
+    var form = modal.querySelector('.modal-form');
+    var formWrap = modal.querySelector('.modal-form-wrap');
+    var success = modal.querySelector('.modal-success');
+
+    function open() {
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(function() { var ta = form.querySelector('textarea'); if (ta) ta.focus(); }, 200);
+    }
+    function close() {
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      setTimeout(function() {
+        form.reset();
+        formWrap.hidden = false;
+        success.hidden = true;
+      }, 300);
+    }
+
+    document.querySelectorAll('[data-modal-open]').forEach(function(el) {
+      el.addEventListener('click', function(e) { e.preventDefault(); open(); });
+    });
+    modal.querySelectorAll('.modal-close').forEach(function(c) {
+      c.addEventListener('click', close);
+    });
+    modal.addEventListener('click', function(e) { if (e.target === modal) close(); });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) close();
+    });
+
+    var errorBox = form.querySelector('.modal-error');
+    var submitBtn = form.querySelector('button[type=submit]');
+    var submitBtnHTML = submitBtn.innerHTML;
+
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.hidden = false;
+    }
+    function hideError() {
+      errorBox.hidden = true;
+      errorBox.textContent = '';
+    }
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      hideError();
+      var task = form.task.value.trim();
+      var contact = form.contact.value.trim();
+      var honeypot = form.website.value;
+      if (!task || task.length < 4) return showError('Опишите задачу хотя бы парой предложений.');
+      if (!contact || contact.length < 3) return showError('Укажите Telegram, email или телефон.');
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Отправляю…';
+
+      try {
+        var r = await fetch('/api/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task: task, contact: contact, website: honeypot })
+        });
+        if (r.status === 429) throw new Error('Слишком много попыток. Подождите минуту.');
+        if (r.status === 503) throw new Error('Бот пока не подключён. Попробуйте позже или напишите напрямую.');
+        if (!r.ok) {
+          var err = await r.json().catch(function() { return {}; });
+          throw new Error(err.detail || 'Не удалось отправить (' + r.status + ')');
+        }
+        try {
+          var list = JSON.parse(localStorage.getItem('ab-submissions') || '[]');
+          list.push({ task: task, contact: contact, ts: new Date().toISOString() });
+          localStorage.setItem('ab-submissions', JSON.stringify(list));
+        } catch(_) {}
+        formWrap.hidden = true;
+        success.hidden = false;
+      } catch (err) {
+        showError(err.message || 'Произошла ошибка. Попробуйте ещё раз.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = submitBtnHTML;
+      }
+    });
+  })();
+
+  // Theme toggle
+  (function() {
+    var root = document.documentElement;
+    var btn = document.querySelector('.theme-toggle');
+    var meta = document.querySelector('meta[name="theme-color"]:not([media])');
+    function apply(t) {
+      root.setAttribute('data-theme', t);
+      // Single dynamic meta for browsers that don't honor media queries on theme-color
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', t === 'dark' ? '#0a0a0c' : '#ffffff');
+    }
+    btn.addEventListener('click', function() {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      apply(next);
+      try { localStorage.setItem('ab-theme', next); } catch(e) {}
+    });
+    // Follow system changes if user hasn't explicitly chosen
+    try {
+      var mql = window.matchMedia('(prefers-color-scheme: dark)');
+      mql.addEventListener && mql.addEventListener('change', function(e) {
+        if (!localStorage.getItem('ab-theme')) apply(e.matches ? 'dark' : 'light');
+      });
+    } catch(e) {}
+  })();
+
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const id = a.getAttribute('href');
+      if (id.length > 1) {
+        const target = document.querySelector(id);
+        if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      }
+    });
+  });
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        en.target.style.opacity = '1';
+        en.target.style.transform = 'translateY(0)';
+        io.unobserve(en.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.solution, .demo, .step, .stack-cell, .why-card, .not-for-list li').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(16px)';
+    el.style.transition = 'opacity 0.7s cubic-bezier(0.22, 0.61, 0.36, 1), transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1)';
+    io.observe(el);
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+# secrets — never commit
+.deploy.env
+.env
+.env.local
+bot/.env
+
+# coolify session
+.superpowers/
+
+# bot state (would be created locally if you run bot.py outside docker)
+bot/data/
+bot/state.json
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# node (in case site grows)
+node_modules/
+
+# misc
+*.log

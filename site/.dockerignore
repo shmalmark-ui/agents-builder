@@ -1,0 +1,7 @@
+.superpowers/
+.git/
+.gitignore
+.dockerignore
+README.md
+docs/
+*.md
