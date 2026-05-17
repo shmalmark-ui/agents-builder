@@ -942,11 +942,21 @@
     gap: 32px;
   }
   .footer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
     font-weight: 600;
     font-size: 16px;
     letter-spacing: -0.02em;
   }
   .footer-brand .dot { color: var(--accent); }
+  .footer-brand .mark { width: 20px; height: 20px; flex-shrink: 0; display: block; }
+  .footer-brand .mark .mark-bg { fill: var(--accent); }
+  .footer-brand .mark .mark-o {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+  }
   .footer-brand p {
     font-weight: 400;
     font-size: 14px; color: var(--ink-secondary);
@@ -1710,14 +1720,26 @@
   <div class="container">
     <div class="footer-inner">
       <div>
-        <div class="footer-brand">agents-builder<span class="dot">.</span>ru</div>
+        <div class="footer-brand">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <defs>
+              <filter id="footermark-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="1.6" stdDeviation="1.4" flood-color="var(--accent)" flood-opacity="0.4"/>
+              </filter>
+            </defs>
+            <rect class="mark-o" x="4" y="4" width="11" height="11" rx="2"/>
+            <rect class="mark-o" x="4" y="17" width="11" height="11" rx="2"/>
+            <rect class="mark-o" x="17" y="17" width="11" height="11" rx="2"/>
+            <rect class="mark-bg" x="17" y="4" width="11" height="11" rx="2" filter="url(#footermark-glow)"/>
+          </svg>
+          <span>agents-builder<span class="dot">.</span>ru</span>
+        </div>
         <p>Разработка ИИ-агентов. Москва / удалённо.</p>
       </div>
       <div>
         <div class="footer-links">
           <a href="#" data-modal-open>Связаться</a>
         </div>
-        <div class="footer-meta">© 2026 · ИП Фамилия И.О. · ИНН ··········</div>
       </div>
     </div>
   </div>
