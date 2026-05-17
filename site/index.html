@@ -164,38 +164,13 @@
     padding: 120px 0 100px;
     position: relative;
   }
-  .hero-grid {
-    display: grid;
-    grid-template-columns: 1.05fr 1fr;
-    gap: 64px;
-    align-items: start;
+  .hero-content {
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: center;
   }
-  .hero-image-wrap {
-    position: relative;
-    margin-top: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 28px;
-  }
-  .hero-image {
-    position: relative;
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    background: #ffffff;
-    box-shadow: 0 24px 60px -36px rgba(0, 0, 0, 0.18), 0 4px 12px -8px rgba(0,0,0,0.06);
-  }
-  .hero-image .hero-video,
-  .hero-image img {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-  :root[data-theme="dark"] .hero-image {
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.10),
-      0 24px 60px -28px rgba(0, 0, 0, 0.7),
-      0 0 80px -20px rgba(77, 142, 255, 0.20);
+  .hero-content > .hero-status {
+    margin-bottom: 28px;
   }
   .hero-status {
     display: inline-flex; align-items: center; gap: 8px;
@@ -205,9 +180,6 @@
     background: var(--bg-elevated);
     border: 1px solid var(--line);
     border-radius: 999px;
-  }
-  .hero-image-wrap .hero-image {
-    width: 100%;
   }
   .hero-status .pulse {
     width: 6px; height: 6px; border-radius: 50%;
@@ -226,8 +198,8 @@
     font-size: clamp(40px, 5.6vw, 76px);
     line-height: 1.02;
     letter-spacing: -0.04em;
-    margin-bottom: 24px;
-    max-width: 14ch;
+    margin: 0 auto 24px;
+    max-width: 18ch;
   }
   h1.hero-title .accent { color: var(--accent); }
 
@@ -293,7 +265,7 @@
     font-size: 19px;
     color: var(--ink-secondary);
     max-width: 52ch;
-    margin: 0 0 36px;
+    margin: 0 auto 36px;
     line-height: 1.5;
     font-weight: 400;
     letter-spacing: -0.012em;
@@ -301,6 +273,7 @@
 
   .hero-ctas {
     display: flex; flex-wrap: wrap; gap: 12px;
+    justify-content: center;
   }
   .btn {
     display: inline-flex; align-items: center; gap: 8px;
@@ -1068,16 +1041,6 @@
   @media (max-width: 960px) {
     .nav-links { display: none; }
     .hero { padding: 64px 0 80px; }
-    .hero-grid {
-      grid-template-columns: 1fr;
-      gap: 40px;
-      text-align: center;
-    }
-    .hero-content .hero-status { display: inline-flex; }
-    .hero-content .hero-title { margin-left: auto; margin-right: auto; }
-    .hero-content .hero-sub { margin-left: auto; margin-right: auto; }
-    .hero-content .hero-ctas { justify-content: center; }
-    .hero-image-wrap { max-width: 420px; margin: 0 auto; order: -1; margin-top: 0; }
     .hero-stats { grid-template-columns: repeat(2, 1fr); gap: 24px; }
     section { padding: 80px 0; }
     .why-me, .not-for { padding: 70px 0; }
@@ -1147,40 +1110,20 @@
 <!-- HERO -->
 <section class="hero">
   <div class="container">
-    <div class="hero-grid">
-      <div class="hero-content">
-        <h1 class="hero-title reveal reveal-delay-1">
-          Собираю ИИ-агентов <span class="shimmer" data-text="под вашу задачу">под вашу задачу</span>
-        </h1>
-        <p class="hero-sub reveal reveal-delay-2">
-          Боты поддержки в Telegram, sales-агенты с автоматической записью на звонок, помощники по базе знаний компании. Фиксированная цена, срок 2–3 недели, всё пишу и поддерживаю сам.
-        </p>
-        <div class="hero-ctas reveal reveal-delay-3">
-          <a href="#" class="btn btn-primary" data-modal-open>Обсудить задачу <span class="arr">→</span></a>
-          <a href="#demos" class="btn btn-secondary">Посмотреть демо</a>
-        </div>
+    <div class="hero-content">
+      <div class="hero-status reveal reveal-delay-1">
+        <span class="pulse"></span>
+        Доступно: 2 слота в мае
       </div>
-
-      <div class="hero-image-wrap reveal reveal-delay-2">
-        <div class="hero-image">
-          <video
-            class="hero-video"
-            autoplay loop muted playsinline preload="metadata"
-            poster="assets/hero-poster.webp"
-            width="1152" height="768"
-            aria-label="Дружелюбный ИИ-агент пишет код на ноутбуке">
-            <source src="assets/hero-robot.webm" type="video/webm">
-            <source src="assets/hero-robot.mp4" type="video/mp4">
-            <picture>
-              <source type="image/webp" srcset="assets/hero-poster.webp">
-              <img src="assets/hero-poster.png" alt="ИИ-агент за ноутбуком" width="800" height="450">
-            </picture>
-          </video>
-        </div>
-        <div class="hero-status">
-          <span class="pulse"></span>
-          Доступно: 2 слота в мае
-        </div>
+      <h1 class="hero-title reveal reveal-delay-2">
+        Собираю ИИ-агентов <span class="shimmer" data-text="под вашу задачу">под вашу задачу</span>
+      </h1>
+      <p class="hero-sub reveal reveal-delay-3">
+        Боты поддержки в Telegram, sales-агенты с автоматической записью на звонок, помощники по базе знаний компании. Фиксированная цена, срок 2–3 недели, всё пишу и поддерживаю сам.
+      </p>
+      <div class="hero-ctas reveal reveal-delay-4">
+        <a href="#" class="btn btn-primary" data-modal-open>Обсудить задачу <span class="arr">→</span></a>
+        <a href="#demos" class="btn btn-secondary">Посмотреть демо</a>
       </div>
     </div>
 
@@ -1860,12 +1803,11 @@
     });
   })();
 
-  // Theme toggle + hero video swap
+  // Theme toggle
   (function() {
     var root = document.documentElement;
     var btn = document.querySelector('.theme-toggle');
     var meta = document.querySelector('meta[name="theme-color"]:not([media])');
-    var video = document.getElementById('hero-video');
 
     function apply(t) {
       root.setAttribute('data-theme', t);
