@@ -172,25 +172,42 @@
   }
   .hero-image-wrap {
     position: relative;
-    margin-top: 20px;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
   }
   .hero-image {
     position: relative;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 24px 60px -36px rgba(0, 0, 0, 0.18), 0 4px 12px -8px rgba(0,0,0,0.06);
   }
+  .hero-image .hero-video,
   .hero-image img {
     width: 100%;
     height: auto;
     display: block;
   }
+  :root[data-theme="dark"] .hero-image {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.10),
+      0 24px 60px -28px rgba(0, 0, 0, 0.7),
+      0 0 80px -20px rgba(77, 142, 255, 0.20);
+  }
   .hero-status {
     display: inline-flex; align-items: center; gap: 8px;
     font-family: 'Geist Mono', monospace; font-size: 12px;
     color: var(--ink-secondary); font-weight: 500;
-    margin-bottom: 36px;
     padding: 6px 12px;
     background: var(--bg-elevated);
     border: 1px solid var(--line);
     border-radius: 999px;
+  }
+  .hero-image-wrap .hero-image {
+    width: 100%;
   }
   .hero-status .pulse {
     width: 6px; height: 6px; border-radius: 50%;
@@ -303,6 +320,10 @@
     border: 1px solid var(--line-strong);
   }
   .btn-secondary:hover { background: #f3f4f6; }
+  :root[data-theme="dark"] .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
   .btn .arr { display: inline-block; transition: transform 0.2s; font-size: 14px; }
   .btn:hover .arr { transform: translateX(3px); }
 
@@ -403,6 +424,41 @@
     line-height: 1.2; margin-bottom: 10px;
   }
   .why-card p { color: var(--ink-secondary); font-size: 15px; line-height: 1.55; }
+
+  /* ============ SPOTLIGHT HOVER (Kling-style) ============ */
+  .spotlight {
+    position: relative;
+    isolation: isolate;
+  }
+  .spotlight::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle 360px at var(--mx, 50%) var(--my, 50%),
+      rgba(0, 102, 255, 0.18),
+      rgba(0, 102, 255, 0.05) 20%,
+      transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  :root[data-theme="dark"] .spotlight::before {
+    background: radial-gradient(
+      circle 360px at var(--mx, 50%) var(--my, 50%),
+      rgba(77, 142, 255, 0.22),
+      rgba(77, 142, 255, 0.06) 25%,
+      transparent 60%
+    );
+  }
+  .spotlight:hover::before { opacity: 1; }
+  .spotlight > * { position: relative; z-index: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .spotlight::before { transition: none; }
+  }
 
   /* ============ SOLUTIONS ============ */
   .solutions {
@@ -1093,15 +1149,11 @@
   <div class="container">
     <div class="hero-grid">
       <div class="hero-content">
-        <div class="hero-status reveal">
-          <span class="pulse"></span>
-          Доступно: 2 слота в мае
-        </div>
         <h1 class="hero-title reveal reveal-delay-1">
-          ИИ-агенты, которые работают <span class="shimmer" data-text="по-настоящему">по-настоящему</span>.
+          Собираю ИИ-агентов <span class="shimmer" data-text="под вашу задачу">под вашу задачу</span>
         </h1>
         <p class="hero-sub reveal reveal-delay-2">
-          Боты для поддержки в Telegram, агенты, которые сами назначают звонки, помощники по вашим документам. Цена не меняется по ходу проекта, срок 2–3 недели, всё делаю сам — без посредников и потерянных писем.
+          Боты поддержки в Telegram, sales-агенты с автоматической записью на звонок, помощники по базе знаний компании. Фиксированная цена, срок 2–3 недели, всё пишу и поддерживаю сам.
         </p>
         <div class="hero-ctas reveal reveal-delay-3">
           <a href="#" class="btn btn-primary" data-modal-open>Обсудить задачу <span class="arr">→</span></a>
@@ -1111,10 +1163,23 @@
 
       <div class="hero-image-wrap reveal reveal-delay-2">
         <div class="hero-image">
-          <picture>
-            <source type="image/webp" srcset="assets/hero-robot.webp 1x, assets/hero-robot@2x.webp 2x">
-            <img src="assets/hero-robot.png" srcset="assets/hero-robot.png 1x, assets/hero-robot@2x.png 2x" alt="Дружелюбный белый ИИ-агент" width="800" height="450" loading="eager" fetchpriority="high">
-          </picture>
+          <video
+            class="hero-video"
+            autoplay loop muted playsinline preload="metadata"
+            poster="assets/hero-poster.webp"
+            width="1152" height="768"
+            aria-label="Дружелюбный ИИ-агент пишет код на ноутбуке">
+            <source src="assets/hero-robot.webm" type="video/webm">
+            <source src="assets/hero-robot.mp4" type="video/mp4">
+            <picture>
+              <source type="image/webp" srcset="assets/hero-poster.webp">
+              <img src="assets/hero-poster.png" alt="ИИ-агент за ноутбуком" width="800" height="450">
+            </picture>
+          </video>
+        </div>
+        <div class="hero-status">
+          <span class="pulse"></span>
+          Доступно: 2 слота в мае
         </div>
       </div>
     </div>
@@ -1126,7 +1191,7 @@
       </div>
       <div class="stat">
         <div class="num">2–3<span class="unit"> нед</span></div>
-        <div class="lbl">срок до прода</div>
+        <div class="lbl">срок до запуска</div>
       </div>
       <div class="stat">
         <div class="num">от 80k<span class="unit"> ₽</span></div>
@@ -1145,24 +1210,24 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Почему со мной, а не с агентством</span>
-      <h2><span class="grad">Один человек делает всё.</span></h2>
-      <p>Без менеджеров, без писем на 12 человек в копии, без «давайте уточним у разработчика». Тот же человек на первом звонке, на запуске и через полгода — когда нужно что-то поправить.</p>
+      <h2><span class="grad">Один человек ведёт проект от начала и до конца.</span></h2>
+      <p>Без аккаунт-менеджеров, без писем на 12 человек в копии, без «давайте уточним у разработчика». Один и тот же человек на первом звонке, на запуске и через полгода — когда нужно что-то поправить.</p>
     </div>
     <div class="why-me-grid">
-      <div class="why-card">
+      <div class="why-card spotlight">
         <div class="icon">01</div>
-        <h4>Пишете мне напрямую</h4>
-        <p>Не менеджеру, не помощнику. Тому самому человеку, который делает агента. Любой вопрос — ответ в течение пары часов, без передачи по цепочке.</p>
+        <h4>Пишете напрямую разработчику</h4>
+        <p>Не менеджеру и не координатору, а тому самому человеку, который пишет код. Любой вопрос — ответ в течение пары часов, без передачи по цепочке.</p>
       </div>
-      <div class="why-card">
+      <div class="why-card spotlight">
         <div class="icon">02</div>
-        <h4>Цена не растёт по ходу</h4>
-        <p>Цена и срок записаны в плане в первый день. Никаких «появились новые сложности, нужно ещё неделю и доплату».</p>
+        <h4>Цена и срок зафиксированы</h4>
+        <p>Обе цифры записаны в техзадании в первый же день. Никаких «появились непредвиденные сложности» и тихого роста сметы по ходу проекта.</p>
       </div>
-      <div class="why-card">
+      <div class="why-card spotlight">
         <div class="icon">03</div>
-        <h4>Никаких стажёров</h4>
-        <p>Не передаю проект другим людям, не сажаю на него начинающих. Каждый агент собран моими руками, от первой строчки до запуска.</p>
+        <h4>Никаких джунов и субподряда</h4>
+        <p>Каждый агент собран моими руками — от первой строчки до боевого запуска. Не передаю проект стажёрам и не отдаю «соседнему подрядчику».</p>
       </div>
     </div>
   </div>
@@ -1173,16 +1238,16 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Решения</span>
-      <h2>Три готовых формата.</h2>
-      <p>Понятная цена, понятный срок, понятно, что внутри. Стартуем в тот же день, как договорились о задаче.</p>
+      <h2>Что я собираю.</h2>
+      <p>Понятная цена, понятный срок и понятно, что внутри. Стартуем в тот же день, как договорились по задаче.</p>
     </div>
 
     <div class="solutions">
-      <div class="solution">
+      <div class="solution spotlight">
         <div class="idx">01 / Support</div>
         <h3>Бот поддержки в Telegram</h3>
-        <p class="desc">Отвечает на частые вопросы, знает ваш продукт. Если не уверен в ответе — передаёт диалог живому оператору.</p>
-        <div class="payback">↓ Снимает ≈ 3 часа работы оператора в день</div>
+        <p class="desc">Отвечает на типовые вопросы и знает ваш продукт. Если не уверен в ответе — передаёт диалог живому оператору.</p>
+        <div class="payback">↓ Снимает 3–4 часа работы оператора в день</div>
         <ul class="features">
           <li>Отвечает по вашим документам</li>
           <li>Передаёт диалог человеку</li>
@@ -1195,10 +1260,10 @@
         </div>
       </div>
 
-      <div class="solution">
+      <div class="solution spotlight">
         <div class="idx">02 / Sales</div>
-        <h3>Агент, который сам назначает звонки</h3>
-        <p class="desc">Узнаёт у клиента бюджет, сроки и задачу. Сам подбирает время в Calendly, отправляет данные в вашу CRM.</p>
+        <h3>Sales-агент с записью на звонок</h3>
+        <p class="desc">Уточняет у клиента бюджет, сроки и задачу, сам подбирает свободное время в Calendly, отправляет готового лида в CRM.</p>
         <div class="payback">↗ Окупается с 1–2 успешных звонков</div>
         <ul class="features">
           <li>Вопросы подстраиваются под нишу</li>
@@ -1212,11 +1277,11 @@
         </div>
       </div>
 
-      <div class="solution">
+      <div class="solution spotlight">
         <div class="idx">03 / Knowledge</div>
-        <h3>Помощник по вашим документам</h3>
-        <p class="desc">Загружаете PDF, Notion, Google Документы — получаете помощника, который отвечает по вашим материалам и показывает, откуда взял ответ.</p>
-        <div class="payback">⏱ Экономит ≈ 40 минут поиска в день</div>
+        <h3>Помощник по базе знаний</h3>
+        <p class="desc">Загружаете PDF, Notion или Google Документы — получаете помощника, который отвечает по вашим материалам и всегда показывает источник.</p>
+        <div class="payback">⏱ Экономит сотруднику ~40 минут поиска в день</div>
         <ul class="features">
           <li>Понимает PDF, Notion, Документы, сайты</li>
           <li>Показывает, из какого документа ответ</li>
@@ -1228,12 +1293,46 @@
           <div class="duration"><span class="v">2–3 нед</span>срок</div>
         </div>
       </div>
+
+      <div class="solution spotlight">
+        <div class="idx">04 / Custom Bot</div>
+        <h3>Telegram-бот под задачу</h3>
+        <p class="desc">Любой бот не из стандартного списка: каталог, мини-приложение, опросник, рассылки, личный кабинет, интеграции с вашими сервисами.</p>
+        <div class="payback">✱ Под ваш сценарий и интеграции</div>
+        <ul class="features">
+          <li>Любая логика, любые сценарии</li>
+          <li>Подключение к вашим API и CRM</li>
+          <li>Админка для управления контентом</li>
+          <li>Хостинг на вашем или моём сервере</li>
+        </ul>
+        <div class="pricing">
+          <div class="price"><span class="from">от</span>60 000 ₽</div>
+          <div class="duration"><span class="v">1–2 нед</span>срок</div>
+        </div>
+      </div>
+
+      <div class="solution spotlight">
+        <div class="idx">05 / Website</div>
+        <h3>Сайт под задачу</h3>
+        <p class="desc">Лендинг для запуска продукта, корпоративный сайт-визитка или одностраничник под рекламную кампанию. С формой заявок, интеграциями и аналитикой.</p>
+        <div class="payback">✱ Дизайн под вашу нишу, не шаблон</div>
+        <ul class="features">
+          <li>Уникальный дизайн под бренд</li>
+          <li>Адаптив под мобильные</li>
+          <li>Форма заявок → ваш Telegram / CRM</li>
+          <li>Базовая SEO и Яндекс.Метрика</li>
+        </ul>
+        <div class="pricing">
+          <div class="price"><span class="from">от</span>90 000 ₽</div>
+          <div class="duration"><span class="v">1–2 нед</span>срок</div>
+        </div>
+      </div>
     </div>
 
     <div class="custom-block">
       <div>
-        <h4>Не из списка?</h4>
-        <p>Сделаю под вашу задачу: обработка документов, помощник в маркетинге, несколько агентов в связке. Оценю срок и цену за один день.</p>
+        <h4>Что-то сложнее?</h4>
+        <p>Связка из нескольких агентов, обработка документов, мульти-агентные системы, интеграции с редкими сервисами. Оценю срок и стоимость за один день.</p>
       </div>
       <a href="#" class="btn btn-light" data-modal-open>Обсудить задачу <span class="arr">→</span></a>
     </div>
@@ -1246,15 +1345,15 @@
     <div class="section-head">
       <span class="eyebrow">Демо</span>
       <h2>Можно потрогать.</h2>
-      <p>Три рабочих агента, которых можно открыть и пообщаться. Не картинки и не рассказы — живые диалоги, чтобы вы увидели, как это работает.</p>
+      <p>Три рабочих агента — открываете, общаетесь, проверяете. Не скриншоты и не рассказы, а живые диалоги, чтобы увидеть результат своими глазами.</p>
     </div>
 
     <div class="demos">
-      <div class="demo">
+      <div class="demo spotlight">
         <div class="demo-text">
           <div class="idx">Демо · 01 / Support</div>
           <h3>Бот «Анна» — поддержка кофейни</h3>
-          <p class="desc">Отвечает на вопросы про меню, часы работы, бронь столика и доставку. Знает 40 страниц внутренних правил. Когда вопрос не по теме — сразу зовёт менеджера.</p>
+          <p class="desc">Отвечает на вопросы про меню, часы работы, бронь столика и доставку. Знает 40 страниц внутренних правил. Если вопрос за рамками — мгновенно зовёт менеджера.</p>
           <ul class="specs">
             <li><span class="k">Стек</span><span class="v">Python · LangGraph · GPT-4o-mini</span></li>
             <li><span class="k">Канал</span><span class="v">Telegram Bot API</span></li>
@@ -1287,11 +1386,11 @@
         </div>
       </div>
 
-      <div class="demo">
+      <div class="demo spotlight">
         <div class="demo-text">
           <div class="idx">Демо · 02 / Sales</div>
-          <h3>Агент-помощник в продажах</h3>
-          <p class="desc">Стоит в окошке на сайте веб-агентства. За 5–7 сообщений узнаёт всё нужное (бюджет, сроки, тип проекта), сам бронирует звонок в Calendly и отправляет заявку в Bitrix24 с заполненными полями.</p>
+          <h3>Sales-агент для веб-агентства</h3>
+          <p class="desc">Живёт в чате на сайте. За 5–7 сообщений уточняет всё нужное (бюджет, сроки, тип проекта), сам бронирует звонок в Calendly и отправляет лида в Bitrix24 с заполненными полями.</p>
           <ul class="specs">
             <li><span class="k">Стек</span><span class="v">Node.js · LangGraph · Claude Sonnet</span></li>
             <li><span class="k">Канал</span><span class="v">Web-widget (custom)</span></li>
@@ -1327,11 +1426,11 @@
         </div>
       </div>
 
-      <div class="demo">
+      <div class="demo spotlight">
         <div class="demo-text">
           <div class="idx">Демо · 03 / Knowledge</div>
-          <h3>Помощник по внутренним правилам</h3>
-          <p class="desc">Внутренний помощник для сотрудников. Загружено 180 страниц правил компании (отпуска, командировки, документы). Отвечает и показывает, в каком документе и пункте написано.</p>
+          <h3>Помощник по регламентам компании</h3>
+          <p class="desc">Внутренний бот для сотрудников. Загружено 180 страниц правил (отпуска, командировки, документооборот). Отвечает и сразу показывает, в каком документе и пункте это написано.</p>
           <ul class="specs">
             <li><span class="k">Стек</span><span class="v">Python · LlamaIndex · GPT-4o</span></li>
             <li><span class="k">Канал</span><span class="v">Telegram + Web</span></li>
@@ -1373,33 +1472,33 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Процесс</span>
-      <h2>От разговора до запуска — 4 шага.</h2>
-      <p>Без долгих согласований. Понятные точки контроля и реальные сроки.</p>
+      <h2>От разговора до запуска — четыре шага.</h2>
+      <p>Без долгих согласований и бесконечных правок. Понятные точки контроля и реальные сроки.</p>
     </div>
 
     <div class="process">
       <div class="step">
         <div class="step-n">01 →</div>
         <h4>Знакомство</h4>
-        <p>20-минутный звонок: задача, ограничения, для кого делаем агента, что у вас уже есть — данные и системы.</p>
+        <p>20-минутный звонок: что нужно сделать, для кого, какие у вас уже есть данные и системы, и какие ограничения.</p>
         <div class="dur">День 1</div>
       </div>
       <div class="step">
         <div class="step-n">02 →</div>
         <h4>План и цена</h4>
-        <p>Документ: что именно делаем, как устроено внутри, точная цена и срок. Согласовали — стартую в тот же день.</p>
+        <p>Документ с архитектурой, точной ценой и сроком. Согласовали — стартую в тот же день.</p>
         <div class="dur">День 2–3</div>
       </div>
       <div class="step">
         <div class="step-n">03 →</div>
         <h4>Рабочая версия</h4>
-        <p>Готовый агент в Telegram (или там, где договорились). Тестируете на настоящих запросах, я записываю правки.</p>
+        <p>Готовый агент в Telegram (или там, где договорились). Вы тестируете на реальных запросах, я фиксирую правки.</p>
         <div class="dur">Неделя 1</div>
       </div>
       <div class="step">
         <div class="step-n">04</div>
-        <h4>Запуск + поддержка</h4>
-        <p>Размещаю на вашем сервере, настраиваю мониторинг, показываю команде, как пользоваться. 2 недели бесплатной поддержки.</p>
+        <h4>Запуск и поддержка</h4>
+        <p>Размещаю на вашем сервере, настраиваю мониторинг, обучаю команду. Две недели бесплатной поддержки после релиза.</p>
         <div class="dur">Неделя 2–3</div>
       </div>
     </div>
@@ -1412,7 +1511,7 @@
     <div class="section-head">
       <span class="eyebrow">Технологии</span>
       <h2>Инструменты подбираю под задачу.</h2>
-      <p>Не зацикливаюсь на одних библиотеках. Для каждого проекта беру то, что даст лучший результат за ваши деньги.</p>
+      <p>Не привязываюсь к одному стеку. Для каждого проекта беру то, что даст лучший результат за ваши деньги.</p>
     </div>
 
     <div class="stack">
@@ -1505,32 +1604,32 @@
   <div class="container">
     <div class="not-for-inner">
       <span class="eyebrow" style="font-family: 'Geist Mono', monospace; font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; margin-bottom: 16px; display: block;">Честно</span>
-      <h2>Кому я <span style="color: var(--ink-muted);">не подойду</span>.</h2>
-      <p class="lede">Лучше сразу сказать честно, чем влезть в проект с неправильными ожиданиями. Если вы — один из этих случаев, посоветую, к кому пойти.</p>
+      <h2>Кому я <span style="color: var(--accent);">не</span> подойду.</h2>
+      <p class="lede">Лучше честно сказать сразу, чем зайти в проект с неправильными ожиданиями. Если попадаете в один из этих случаев — подскажу, к кому пойти.</p>
 
       <ul class="not-for-list">
         <li>
           <span class="x">01</span>
-          <span class="text">Большие банки и госструктуры
+          <span class="text">Крупные банки и госструктуры
             <small>Если нужны сертификаты, проверки безопасности и сервер в закрытом контуре — это другой уровень бумаг и сроков. Не моя сфера.</small>
           </span>
         </li>
         <li>
           <span class="x">02</span>
-          <span class="text">Голосовые роботы для звонков
-            <small>Распознавание речи, синтез голоса, сложная телефония — отдельная специальность. Я делаю агентов, которые общаются текстом.</small>
+          <span class="text">Голосовые роботы для колл-центров
+            <small>Распознавание речи, синтез голоса и сложная телефония — отдельная специальность. Я делаю агентов, которые общаются текстом.</small>
           </span>
         </li>
         <li>
           <span class="x">03</span>
-          <span class="text">Берёте разработчика в штат
-            <small>Я работаю как подрядчик: проект с фиксированным сроком и ценой. На полный день в команду — нет.</small>
+          <span class="text">Разработчик в штат на фуллтайм
+            <small>Я работаю как подрядчик — проекты с фиксированной ценой и сроком. На постоянную позицию в команде не пойду.</small>
           </span>
         </li>
         <li>
           <span class="x">04</span>
           <span class="text">Бюджет меньше 50 000 ₽
-            <small>За такие деньги получится только простая обёртка без связок с вашими системами и поддержки. Для маленьких задач лучше посмотрите готовые сервисы.</small>
+            <small>За такие деньги получится только простая prompt-обёртка без интеграций и поддержки. Под мелкие задачи лучше взять готовый no-code сервис.</small>
           </span>
         </li>
       </ul>
@@ -1609,7 +1708,7 @@
   <div class="container">
     <div class="cta-section">
       <h2><span class="grad">Расскажите, что нужно собрать.</span></h2>
-      <p>20 минут разговора — и через день у вас будет план: что именно делаем, как устроено внутри, точный срок и цена. Без оплаты и обязательств.</p>
+      <p>20 минут разговора — и через день у вас на руках план: что именно делаем, как устроено внутри, точный срок и цена. Без предоплаты, без обязательств.</p>
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;">
         <a href="#" class="btn btn-primary" data-modal-open>Оставить задачу <span class="arr">→</span></a>
       </div>
@@ -1761,14 +1860,15 @@
     });
   })();
 
-  // Theme toggle
+  // Theme toggle + hero video swap
   (function() {
     var root = document.documentElement;
     var btn = document.querySelector('.theme-toggle');
     var meta = document.querySelector('meta[name="theme-color"]:not([media])');
+    var video = document.getElementById('hero-video');
+
     function apply(t) {
       root.setAttribute('data-theme', t);
-      // Single dynamic meta for browsers that don't honor media queries on theme-color
       if (!meta) {
         meta = document.createElement('meta');
         meta.name = 'theme-color';
@@ -1776,18 +1876,30 @@
       }
       meta.setAttribute('content', t === 'dark' ? '#0a0a0c' : '#ffffff');
     }
+
     btn.addEventListener('click', function() {
       var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       apply(next);
       try { localStorage.setItem('ab-theme', next); } catch(e) {}
     });
-    // Follow system changes if user hasn't explicitly chosen
     try {
       var mql = window.matchMedia('(prefers-color-scheme: dark)');
       mql.addEventListener && mql.addEventListener('change', function(e) {
         if (!localStorage.getItem('ab-theme')) apply(e.matches ? 'dark' : 'light');
       });
     } catch(e) {}
+  })();
+
+  // Spotlight effect: track cursor position on hover-enabled cards
+  (function() {
+    var cards = document.querySelectorAll('.spotlight');
+    cards.forEach(function(card) {
+      card.addEventListener('mousemove', function(e) {
+        var r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+      });
+    });
   })();
 
   document.querySelectorAll('a[href^="#"]').forEach(a => {
