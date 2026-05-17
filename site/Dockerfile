@@ -3,6 +3,7 @@ FROM nginx:1.27-alpine
 RUN apk add --no-cache curl
 
 COPY index.html /usr/share/nginx/html/index.html
+COPY favicon.svg /usr/share/nginx/html/favicon.svg
 COPY assets/ /usr/share/nginx/html/assets/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
