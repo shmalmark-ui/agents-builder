@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,18 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)">
-<script>
-  // Apply theme BEFORE first paint to prevent flash
-  (function() {
-    try {
-      var t = localStorage.getItem('ab-theme');
-      if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', t);
-    } catch(e) {}
-  })();
-</script>
+<meta name="theme-color" content="#0a0a0c">
 <style>
   :root {
     --bg: #ffffff;
@@ -68,7 +57,7 @@
   /* Smooth theme transition */
   body, .nav, .nav-cta, .hero-status, .why-card, .solution, .demo, .demo-text,
   .demo-visual, .chat-msg, .step, .stack-cell, .faq, .faq-item summary,
-  .btn, .not-for-list, .theme-toggle, .nav-brand {
+  .btn, .not-for-list, .nav-brand {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
 
@@ -113,25 +102,7 @@
     z-index: 100;
   }
 
-  /* Theme toggle button */
   .nav-right { display: flex; align-items: center; gap: 10px; }
-  .theme-toggle {
-    width: 34px; height: 34px;
-    border-radius: 50%;
-    background: var(--bg-elevated);
-    border: 1px solid var(--line);
-    color: var(--ink);
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.2s, border-color 0.2s, transform 0.2s;
-    padding: 0;
-  }
-  .theme-toggle:hover { border-color: var(--line-strong); transform: scale(1.05); }
-  .theme-toggle:active { transform: scale(0.95); }
-  .theme-toggle svg { width: 15px; height: 15px; }
-  .theme-toggle .moon { display: none; }
-  :root[data-theme="dark"] .theme-toggle .sun { display: none; }
-  :root[data-theme="dark"] .theme-toggle .moon { display: block; }
   .nav-inner {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 24px;
@@ -1182,15 +1153,6 @@
       <a href="#faq">FAQ</a>
     </div>
     <div class="nav-right">
-      <button class="theme-toggle" aria-label="Переключить тему" type="button">
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="4"></circle>
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
-        </svg>
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-      </button>
       <a href="#" class="nav-cta" data-modal-open>Обсудить</a>
     </div>
   </div>
@@ -2034,35 +1996,6 @@
 
     resize();
     rafId = requestAnimationFrame(animate);
-  })();
-
-  // Theme toggle
-  (function() {
-    var root = document.documentElement;
-    var btn = document.querySelector('.theme-toggle');
-    var meta = document.querySelector('meta[name="theme-color"]:not([media])');
-
-    function apply(t) {
-      root.setAttribute('data-theme', t);
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.name = 'theme-color';
-        document.head.appendChild(meta);
-      }
-      meta.setAttribute('content', t === 'dark' ? '#0a0a0c' : '#ffffff');
-    }
-
-    btn.addEventListener('click', function() {
-      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      apply(next);
-      try { localStorage.setItem('ab-theme', next); } catch(e) {}
-    });
-    try {
-      var mql = window.matchMedia('(prefers-color-scheme: dark)');
-      mql.addEventListener && mql.addEventListener('change', function(e) {
-        if (!localStorage.getItem('ab-theme')) apply(e.matches ? 'dark' : 'light');
-      });
-    } catch(e) {}
   })();
 
   // Spotlight effect: track cursor position on hover-enabled cards
