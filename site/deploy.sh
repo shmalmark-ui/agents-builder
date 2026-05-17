@@ -18,7 +18,7 @@ set +a
 : "${SITE_APP_UUID:?нужно задать SITE_APP_UUID в .deploy.env}"
 
 echo "→ Синхронизирую файлы сайта на сервер…"
-rsync -avz --exclude='.git' --exclude='deploy.sh' ./ "${COOLIFY_SERVER}":/opt/agents-builder/site/
+rsync -avz --delete --exclude='.git' --exclude='deploy.sh' ./ "${COOLIFY_SERVER}":/opt/agents-builder/site/
 
 echo "→ Собираю образ и пушу в локальный registry…"
 ssh "${COOLIFY_SERVER}" 'cd /opt/agents-builder/site && docker build -t agents-builder:latest . && docker tag agents-builder:latest localhost:5000/agents-builder:latest && docker push localhost:5000/agents-builder:latest' | tail -3

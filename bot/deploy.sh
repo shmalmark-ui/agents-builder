@@ -18,7 +18,7 @@ set +a
 : "${BOT_APP_UUID:?нужно задать BOT_APP_UUID в .deploy.env}"
 
 echo "→ Синхронизирую файлы бота на сервер…"
-rsync -avz --exclude='.git' --exclude='deploy.sh' --exclude='.env' --exclude='__pycache__' ./ "${COOLIFY_SERVER}":/opt/agents-builder/bot/
+rsync -avz --delete --exclude='.git' --exclude='deploy.sh' --exclude='.env' --exclude='__pycache__' ./ "${COOLIFY_SERVER}":/opt/agents-builder/bot/
 
 echo "→ Собираю образ и пушу в локальный registry…"
 ssh "${COOLIFY_SERVER}" 'cd /opt/agents-builder/bot && docker build -t agents-builder-bot:latest . && docker tag agents-builder-bot:latest localhost:5000/agents-builder-bot:latest && docker push localhost:5000/agents-builder-bot:latest' | tail -3
