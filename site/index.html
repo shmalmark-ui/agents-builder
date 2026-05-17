@@ -1902,6 +1902,8 @@
       { x: 0.16, y: 0.88, r: 75,  speed: 0.00052, rot: Math.PI / 5,  pts: [] }  // bottom-left small
     ];
 
+    var snow = [];
+
     function init() {
       spheres.forEach(function(s) {
         s.pts = [];
@@ -1916,6 +1918,20 @@
           });
         }
       });
+
+      // Diagonal snowfall — drifts top-left → bottom-right
+      snow = [];
+      var snowCount = 50;
+      for (var k = 0; k < snowCount; k++) {
+        snow.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (0.7 + Math.random() * 0.5) * dpr,
+          vy: (0.5 + Math.random() * 0.4) * dpr,
+          r:  (0.6 + Math.random() * 1.2) * dpr,
+          a:  0.20 + Math.random() * 0.30
+        });
+      }
     }
 
     function resize() {
@@ -1934,7 +1950,7 @@
 
     function animate(t) {
       if (document.hidden) { rafId = requestAnimationFrame(animate); return; }
-      if (t - lastFrame < 33) { rafId = requestAnimationFrame(animate); return; }
+      if (t - lastFrame < 33) { if (!reduced) rafId = requestAnimationFrame(animate); return; }
       lastFrame = t;
 
       ctx.clearRect(0, 0, W, H);
@@ -1978,7 +1994,23 @@
         });
       });
 
-      rafId = requestAnimationFrame(animate);
+      // Diagonal snowfall layer (drifts top-left → bottom-right)
+      snow.forEach(function(p) {
+        if (!reduced) {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x > W + 8 || p.y > H + 8) {
+            if (Math.random() < 0.5) { p.x = -8; p.y = Math.random() * H * 0.7; }
+            else { p.x = Math.random() * W * 0.7; p.y = -8; }
+          }
+        }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(' + col.rgb + ',' + p.a.toFixed(3) + ')';
+        ctx.fill();
+      });
+
+      if (!reduced) rafId = requestAnimationFrame(animate);
     }
 
     function onMove(e) {
@@ -2001,7 +2033,7 @@
     document.addEventListener('touchend', onLeave);
 
     resize();
-    if (!reduced) rafId = requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
   })();
 
   // Theme toggle
