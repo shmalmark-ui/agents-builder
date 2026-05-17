@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)">
 <script>
@@ -137,12 +138,27 @@
     max-width: 1320px; margin: 0 auto;
   }
   .nav-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
     font-weight: 600;
     font-size: 16px;
     letter-spacing: -0.02em;
     color: var(--ink);
   }
   .nav-brand .dot { color: var(--accent); }
+  .nav-brand .mark {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: block;
+  }
+  .nav-brand .mark .mark-bg { fill: var(--accent); }
+  .nav-brand .mark .mark-o {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+  }
   .nav-links {
     display: flex; gap: 28px;
     font-size: 14px;
@@ -1084,7 +1100,20 @@
 <!-- NAV -->
 <nav class="nav">
   <div class="nav-inner">
-    <a href="#" class="nav-brand">agents-builder<span class="dot">.</span>ru</a>
+    <a href="#" class="nav-brand">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+        <defs>
+          <filter id="navmark-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="1.6" stdDeviation="1.4" flood-color="var(--accent)" flood-opacity="0.4"/>
+          </filter>
+        </defs>
+        <rect class="mark-o" x="4" y="4" width="11" height="11" rx="2"/>
+        <rect class="mark-o" x="4" y="17" width="11" height="11" rx="2"/>
+        <rect class="mark-o" x="17" y="17" width="11" height="11" rx="2"/>
+        <rect class="mark-bg" x="17" y="4" width="11" height="11" rx="2" filter="url(#navmark-glow)"/>
+      </svg>
+      <span>agents-builder<span class="dot">.</span>ru</span>
+    </a>
     <div class="nav-links">
       <a href="#solutions">Решения</a>
       <a href="#demos">Демо</a>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .o { stroke: #0a0a0a; fill: none; stroke-width: 1.6; }
+    .b { fill: #0066ff; }
+    @media (prefers-color-scheme: dark) {
+      .o { stroke: #f3f3f5; }
+      .b { fill: #4d8eff; }
+    }
+  </style>
+  <defs>
+    <filter id="g" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1.6" stdDeviation="1.4" flood-color="#0066ff" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <rect class="o" x="4" y="4" width="11" height="11" rx="2"/>
+  <rect class="o" x="4" y="17" width="11" height="11" rx="2"/>
+  <rect class="o" x="17" y="17" width="11" height="11" rx="2"/>
+  <rect class="b" x="17" y="4" width="11" height="11" rx="2" filter="url(#g)"/>
+</svg>
