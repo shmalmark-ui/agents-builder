@@ -177,9 +177,19 @@
 
   /* ============ HERO ============ */
   .hero {
-    padding: 120px 0 100px;
+    padding: 56px 0 100px;
     position: relative;
+    overflow: hidden;
   }
+  #hero-orbs {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hero > .container { position: relative; z-index: 1; }
   .hero-content {
     max-width: 760px;
     margin: 0 auto;
@@ -214,42 +224,35 @@
     font-size: clamp(40px, 5.6vw, 76px);
     line-height: 1.02;
     letter-spacing: -0.04em;
-    margin: 0 auto 24px;
+    margin: 0 auto 56px;
     max-width: 18ch;
   }
   h1.hero-title .accent { color: var(--accent); }
 
-  /* Shimmer — highlight pass over existing text */
-  @keyframes shimmer {
-    0%   { background-position: 200% 0; }
-    60%, 100% { background-position: -200% 0; }
-  }
+  /* Animated cool gradient flowing through the title accent */
   .shimmer {
-    color: var(--accent);
-    position: relative;
     display: inline-block;
-  }
-  .shimmer::after {
-    content: attr(data-text);
-    position: absolute;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    background-image: linear-gradient(
-      110deg,
-      transparent 30%,
-      var(--shimmer-highlight) 48%,
-      var(--shimmer-highlight) 50%,
-      var(--shimmer-highlight) 52%,
-      transparent 70%
+    background: linear-gradient(
+      90deg,
+      #4d8eff 0%,
+      #a882f0 25%,
+      #c48eeb 50%,
+      #7dd3fc 75%,
+      #4d8eff 100%
     );
-    background-size: 220% 100%;
-    background-repeat: no-repeat;
+    background-size: 200% 100%;
     -webkit-background-clip: text;
     background-clip: text;
-    color: transparent;
     -webkit-text-fill-color: transparent;
-    animation: shimmer 3.6s ease-in-out infinite;
-    pointer-events: none;
+    color: transparent;
+    animation: gradient-flow 8s linear infinite;
+  }
+  @keyframes gradient-flow {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer { animation: none; }
   }
 
   /* Status pill shimmer line */
@@ -317,12 +320,15 @@
   .btn:hover .arr { transform: translateX(3px); }
 
   .hero-stats {
-    display: grid; grid-template-columns: repeat(4, 1fr);
+    display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 32px;
     margin-top: 80px;
     padding-top: 36px;
     border-top: 1px solid var(--line);
-    text-align: left;
+    text-align: center;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
   }
   .hero-stats .stat .num {
     font-size: 38px;
@@ -331,12 +337,12 @@
     line-height: 1;
     margin-bottom: 8px;
   }
-  .hero-stats .stat .num .unit { font-size: 18px; color: var(--ink-muted); font-weight: 400; }
+  .hero-stats .stat .num .unit { font-size: 18px; color: var(--ink-secondary); font-weight: 500; }
   .hero-stats .stat .num.compact { font-size: 16px; font-weight: 500; font-family: 'Geist Mono', monospace; letter-spacing: -0.02em; line-height: 1.3; }
   .hero-stats .stat .lbl {
     font-family: 'Geist Mono', monospace;
-    font-size: 11px; color: var(--ink-muted);
-    font-weight: 500;
+    font-size: 11px; color: var(--ink-secondary);
+    font-weight: 600;
     letter-spacing: 0.04em;
   }
 
@@ -455,19 +461,73 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
   }
+  @property --grad-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+  }
   .solution {
     background: var(--bg);
     border: 1px solid var(--line);
     border-radius: var(--radius-xl);
     padding: 36px 32px;
     display: flex; flex-direction: column;
-    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.7s cubic-bezier(0.2, 0.6, 0.2, 1), box-shadow 0.8s ease;
     position: relative;
   }
+  .solution::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--grad-angle),
+      rgba(77, 142, 255, 0.50),
+      rgba(168, 130, 240, 0.50),
+      rgba(125, 211, 252, 0.50),
+      rgba(196, 142, 235, 0.50),
+      rgba(77, 142, 255, 0.50)
+    );
+    -webkit-mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+    mask-composite: exclude;
+    animation: solution-rotate 8s linear infinite;
+    pointer-events: none;
+  }
+  :root[data-theme="dark"] .solution::before {
+    background: conic-gradient(
+      from var(--grad-angle),
+      rgba(77, 142, 255, 0.65),
+      rgba(168, 130, 240, 0.65),
+      rgba(125, 211, 252, 0.65),
+      rgba(196, 142, 235, 0.65),
+      rgba(77, 142, 255, 0.65)
+    );
+  }
+  @keyframes solution-rotate {
+    to { --grad-angle: 360deg; }
+  }
+  .solution > * { position: relative; z-index: 1; }
   .solution:hover {
-    border-color: var(--line-strong);
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    box-shadow:
+      0 20px 44px -28px rgba(0, 0, 0, 0.14),
+      0 0 90px -16px rgba(77, 142, 255, 0.18);
+  }
+  .solution:hover::before {
+    animation-duration: 4s;
+  }
+  :root[data-theme="dark"] .solution:hover {
+    box-shadow:
+      0 20px 44px -28px rgba(0, 0, 0, 0.55),
+      0 0 110px -16px rgba(77, 142, 255, 0.25);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .solution { transition: none; }
+    .solution::before { animation: none; }
+    .solution:hover { transform: none; }
   }
   .solution .idx {
     font-family: 'Geist Mono', monospace;
@@ -1057,7 +1117,7 @@
   @media (max-width: 960px) {
     .nav-links { display: none; }
     .hero { padding: 64px 0 80px; }
-    .hero-stats { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .hero-stats { grid-template-columns: repeat(3, 1fr); gap: 20px; }
     section { padding: 80px 0; }
     .why-me, .not-for { padding: 70px 0; }
     .solutions { grid-template-columns: 1fr; }
@@ -1075,7 +1135,7 @@
     .faq-item .a { padding: 0 24px 24px 66px; }
   }
   @media (max-width: 540px) {
-    .hero-stats { grid-template-columns: 1fr 1fr; }
+    .hero-stats { grid-template-columns: 1fr; gap: 24px; max-width: 320px; }
     .process { grid-template-columns: 1fr; }
     .stack { grid-template-columns: 1fr; }
     .nav-cta { padding: 7px 12px; font-size: 12px; }
@@ -1138,6 +1198,7 @@
 
 <!-- HERO -->
 <section class="hero">
+  <canvas id="hero-orbs" aria-hidden="true"></canvas>
   <div class="container">
     <div class="hero-content">
       <div class="hero-status reveal reveal-delay-1">
@@ -1147,9 +1208,6 @@
       <h1 class="hero-title reveal reveal-delay-2">
         Собираю ИИ-агентов <span class="shimmer" data-text="под вашу задачу">под вашу задачу</span>
       </h1>
-      <p class="hero-sub reveal reveal-delay-3">
-        Боты поддержки в Telegram, sales-агенты с автоматической записью на звонок, помощники по базе знаний компании. Фиксированная цена, срок 2–3 недели, всё пишу и поддерживаю сам.
-      </p>
       <div class="hero-ctas reveal reveal-delay-4">
         <a href="#" class="btn btn-primary" data-modal-open>Обсудить задачу <span class="arr">→</span></a>
         <a href="#demos" class="btn btn-secondary">Посмотреть демо</a>
@@ -1168,10 +1226,6 @@
       <div class="stat">
         <div class="num">от 80k<span class="unit"> ₽</span></div>
         <div class="lbl">фиксированная цена</div>
-      </div>
-      <div class="stat">
-        <div class="num compact">Python · LangGraph<br>OpenAI · Claude</div>
-        <div class="lbl">стек</div>
       </div>
     </div>
   </div>
@@ -1830,6 +1884,124 @@
         submitBtn.innerHTML = submitBtnHTML;
       }
     });
+  })();
+
+  // Hero orbs — Fibonacci-sphere particles with cursor repulsion
+  (function() {
+    var canvas = document.getElementById('hero-orbs');
+    if (!canvas || !canvas.getContext) return;
+    var ctx = canvas.getContext('2d');
+    var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    var W = 0, H = 0, mx = -1e4, my = -1e4, lastFrame = 0, rafId = 0;
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    var spheres = [
+      { x: 0.95, y: 0.95, r: 600, speed: 0.00014, rot: Math.PI / 2,  pts: [] }, // bottom-right BIG
+      { x: 0.86, y: 0.15, r: 160, speed: 0.00033, rot: Math.PI / 4,  pts: [] }, // top-right medium
+      { x: 0.14, y: 0.36, r: 200, speed: 0.00033, rot: 0,            pts: [] }, // middle-left medium
+      { x: 0.16, y: 0.88, r: 75,  speed: 0.00052, rot: Math.PI / 5,  pts: [] }  // bottom-left small
+    ];
+
+    function init() {
+      spheres.forEach(function(s) {
+        s.pts = [];
+        s.cx = W * s.x; s.cy = H * s.y;
+        s.ar = Math.min(W, H) * 0.13 * (s.r / 200);
+        var count = Math.floor(60 * (s.r / 200) * (s.r / 200));
+        for (var i = 0; i < count; i++) {
+          s.pts.push({
+            phi: Math.acos(1 - 2 * (i + 0.5) / count),
+            theta: Math.PI * (1 + Math.sqrt(5)) * i,
+            pushX: 0, pushY: 0, glow: 0
+          });
+        }
+      });
+    }
+
+    function resize() {
+      var rect = canvas.getBoundingClientRect();
+      W = canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      H = canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      init();
+    }
+
+    function colors() {
+      var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      return dark
+        ? { rgb: '180, 205, 255', base: 0.30, max: 0.75 }
+        : { rgb: '70, 100, 200',  base: 0.22, max: 0.55 };
+    }
+
+    function animate(t) {
+      if (document.hidden) { rafId = requestAnimationFrame(animate); return; }
+      if (t - lastFrame < 33) { rafId = requestAnimationFrame(animate); return; }
+      lastFrame = t;
+
+      ctx.clearRect(0, 0, W, H);
+      var col = colors();
+
+      spheres.forEach(function(sp) {
+        sp.rot += sp.speed * 16;
+        var pts = [];
+        sp.pts.forEach(function(p) {
+          var th = p.theta + sp.rot;
+          var sinPhi = Math.sin(p.phi);
+          var x3 = sp.ar * sinPhi * Math.cos(th);
+          var y3 = sp.ar * sinPhi * Math.sin(th);
+          var z3 = sp.ar * Math.cos(p.phi);
+          var px = sp.cx + x3, py = sp.cy + z3;
+
+          var dx = px - mx, dy = py - my;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          var pushR = 130 * dpr;
+          if (dist < pushR && dist > 0) {
+            var f = Math.pow(1 - dist / pushR, 1.5) * 90;
+            p.pushX += (dx / dist) * f * 0.18;
+            p.pushY += (dy / dist) * f * 0.18;
+            p.glow = Math.min(p.glow + f * 0.0012, 0.45);
+          }
+          p.pushX *= 0.88; p.pushY *= 0.88; p.glow *= 0.9;
+          px += p.pushX; py += p.pushY;
+
+          pts.push({ x: px, y: py, z: y3, glow: p.glow });
+        });
+
+        pts.sort(function(a, b) { return a.z - b.z; });
+        pts.forEach(function(p) {
+          var depth = (p.z + sp.ar) / (sp.ar * 2);
+          var a = Math.min(col.base + depth * 0.25 + p.glow, col.max);
+          var sz = (1.1 + depth * 0.7) * dpr;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, sz, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(' + col.rgb + ',' + a.toFixed(3) + ')';
+          ctx.fill();
+        });
+      });
+
+      rafId = requestAnimationFrame(animate);
+    }
+
+    function onMove(e) {
+      var rect = canvas.getBoundingClientRect();
+      mx = (e.clientX - rect.left) * dpr;
+      my = (e.clientY - rect.top) * dpr;
+    }
+    function onLeave() { mx = -1e4; my = -1e4; }
+
+    window.addEventListener('resize', resize);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseleave', onLeave);
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches[0]) {
+        var rect = canvas.getBoundingClientRect();
+        mx = (e.touches[0].clientX - rect.left) * dpr;
+        my = (e.touches[0].clientY - rect.top) * dpr;
+      }
+    }, { passive: true });
+    document.addEventListener('touchend', onLeave);
+
+    resize();
+    if (!reduced) rafId = requestAnimationFrame(animate);
   })();
 
   // Theme toggle
