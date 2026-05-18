@@ -7,6 +7,7 @@ COPY favicon.svg /usr/share/nginx/html/favicon.svg
 COPY robots.txt /usr/share/nginx/html/robots.txt
 COPY sitemap.xml /usr/share/nginx/html/sitemap.xml
 COPY og-image.png /usr/share/nginx/html/og-image.png
+COPY apple-touch-icon.png /usr/share/nginx/html/apple-touch-icon.png
 COPY assets/ /usr/share/nginx/html/assets/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
