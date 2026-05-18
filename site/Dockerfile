@@ -9,6 +9,7 @@ COPY sitemap.xml /usr/share/nginx/html/sitemap.xml
 COPY og-image.png /usr/share/nginx/html/og-image.png
 COPY apple-touch-icon.png /usr/share/nginx/html/apple-touch-icon.png
 COPY 50d8465c49968e3da64c25401a204ea6.txt /usr/share/nginx/html/50d8465c49968e3da64c25401a204ea6.txt
+COPY yandex_5b64c23589c0b6f1.html /usr/share/nginx/html/yandex_5b64c23589c0b6f1.html
 COPY assets/ /usr/share/nginx/html/assets/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
