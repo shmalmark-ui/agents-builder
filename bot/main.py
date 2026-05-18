@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import uvicorn
-from aiogram import Bot, Dispatcher, F
+from aiogram import BaseMiddleware, Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
@@ -26,6 +26,7 @@ from aiogram.types import (
     KeyboardButton,
     Message,
     ReplyKeyboardMarkup,
+    TelegramObject,
 )
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -210,6 +211,44 @@ bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTM
 dp = Dispatcher()
 
 
+class OwnerOnlyMiddleware(BaseMiddleware):
+    """
+    Игнорирует всех, кроме владельца.
+    Пока owner не привязан, пропускает только /start (для первичной привязки).
+    После привязки — отвечает только тому chat_id, который записан в state.
+    Для посторонних бот выглядит «мёртвым» — не отвечает ни на что.
+    """
+
+    async def __call__(self, handler, event: TelegramObject, data):
+        owner = STATE.get("owner_chat_id")
+
+        if isinstance(event, Message):
+            chat_id = event.chat.id
+            text = event.text or ""
+            is_start = text.startswith("/start")
+        elif isinstance(event, CallbackQuery):
+            chat_id = event.message.chat.id if event.message else None
+            is_start = False
+        else:
+            return await handler(event, data)
+
+        if owner is None:
+            if is_start:
+                return await handler(event, data)
+            log.info("rejected pre-bind message from chat_id=%s", chat_id)
+            return None
+
+        if chat_id == owner:
+            return await handler(event, data)
+
+        log.info("rejected foreign message from chat_id=%s (owner=%s)", chat_id, owner)
+        return None
+
+
+dp.message.middleware(OwnerOnlyMiddleware())
+dp.callback_query.middleware(OwnerOnlyMiddleware())
+
+
 async def replace_menu(msg: Message, text: str) -> None:
     """
     Заменяет предыдущий ответ-меню новым: удаляет старый список + само
@@ -240,8 +279,9 @@ async def replace_menu(msg: Message, text: str) -> None:
 @dp.message(CommandStart())
 async def cmd_start(msg: Message) -> None:
     first_time = STATE.get("owner_chat_id") is None
-    STATE["owner_chat_id"] = msg.chat.id
-    save_state()
+    if first_time:
+        STATE["owner_chat_id"] = msg.chat.id
+        save_state()
     if first_time:
         text = (
             "✅ <b>Бот подключён к agents-builder.ru</b>\n\n"

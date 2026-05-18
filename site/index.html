@@ -251,16 +251,6 @@
     -webkit-text-fill-color: transparent;
   }
 
-  .hero-sub {
-    font-size: 19px;
-    color: var(--ink-secondary);
-    max-width: 52ch;
-    margin: 0 auto 36px;
-    line-height: 1.5;
-    font-weight: 400;
-    letter-spacing: -0.012em;
-  }
-
   .hero-ctas {
     display: flex; flex-wrap: wrap; gap: 12px;
     justify-content: center;
@@ -323,7 +313,7 @@
     text-align: center;
     margin-bottom: 64px;
   }
-  .section-head .eyebrow {
+  .eyebrow {
     font-family: 'Geist Mono', monospace;
     font-size: 12px; color: var(--accent);
     text-transform: uppercase;
@@ -445,6 +435,21 @@
     display: flex; flex-direction: column;
     transition: transform 0.7s cubic-bezier(0.2, 0.6, 0.2, 1), box-shadow 0.8s ease;
     position: relative;
+    opacity: 0;
+    transform: scale(0);
+    transform-origin: center;
+  }
+  .solutions.in-view .solution {
+    animation: card-spawn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  .solutions.in-view .solution:nth-child(1) { animation-delay: 0.05s; }
+  .solutions.in-view .solution:nth-child(2) { animation-delay: 1.00s; }
+  .solutions.in-view .solution:nth-child(3) { animation-delay: 1.95s; }
+  .solutions.in-view .solution:nth-child(4) { animation-delay: 2.90s; }
+  .solutions.in-view .solution:nth-child(5) { animation-delay: 3.85s; }
+  .solutions.in-view .solution:nth-child(6) { animation-delay: 4.80s; }
+  @keyframes card-spawn {
+    to { opacity: 1; transform: scale(1); }
   }
   .solution::before {
     content: '';
@@ -496,8 +501,9 @@
       0 0 110px -16px rgba(77, 142, 255, 0.25);
   }
   @media (prefers-reduced-motion: reduce) {
-    .solution { transition: none; }
+    .solution { transition: none; opacity: 1; transform: none; }
     .solution::before { animation: none; }
+    .solutions.in-view .solution { animation: none; }
     .solution:hover { transform: none; }
   }
   .solution .idx {
@@ -687,6 +693,13 @@
     border-top: 1px solid var(--line);
     display: flex; justify-content: space-between;
     font-weight: 500;
+  }
+  .chat-cite {
+    display: block;
+    margin-top: 10px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
   }
 
   /* ============ PROCESS ============ */
@@ -1178,7 +1191,7 @@
         Доступно: 2 слота в мае
       </div>
       <h1 class="hero-title reveal reveal-delay-2">
-        Собираю ИИ-агентов <span class="shimmer" data-text="под вашу задачу">под вашу задачу</span>
+        Собираю ИИ-агентов <span class="shimmer">под вашу задачу</span>
       </h1>
       <div class="hero-ctas reveal reveal-delay-4">
         <a href="#" class="btn btn-primary" data-modal-open>Обсудить задачу <span class="arr">→</span></a>
@@ -1188,8 +1201,8 @@
 
     <div class="hero-stats reveal reveal-delay-4">
       <div class="stat">
-        <div class="num">3</div>
-        <div class="lbl">типовых решения</div>
+        <div class="num">5</div>
+        <div class="lbl">типовых решений</div>
       </div>
       <div class="stat">
         <div class="num">2–3<span class="unit"> нед</span></div>
@@ -1443,8 +1456,8 @@
           </div>
           <div class="chat-msg">
             <span class="who">Ассистент</span>
-            Заявка на оплачиваемый отпуск подаётся <b>не позднее чем за 14 календарных дней</b> до даты начала отпуска.<br><br>
-            <span style="font-size:11px;color:var(--ink-muted);font-family:'Geist Mono'">📎 Регламент HR-2024, п. 4.2.1</span>
+            Заявка на оплачиваемый отпуск подаётся <b>не позднее чем за 14 календарных дней</b> до даты начала отпуска.
+            <span class="chat-cite">📎 Регламент HR-2024, п. 4.2.1</span>
           </div>
           <div class="chat-msg user">
             <span class="who">Сотрудник</span>
@@ -1452,8 +1465,8 @@
           </div>
           <div class="chat-msg">
             <span class="who">Ассистент</span>
-            Срочный отгул оформляется через прямого руководителя устно, с последующим оформлением в течение 3 рабочих дней.<br><br>
-            <span style="font-size:11px;color:var(--ink-muted);font-family:'Geist Mono'">📎 Регламент HR-2024, п. 4.5.3</span>
+            Срочный отгул оформляется через прямого руководителя устно, с последующим оформлением в течение 3 рабочих дней.
+            <span class="chat-cite">📎 Регламент HR-2024, п. 4.5.3</span>
           </div>
           <div class="chat-meta">
             <span>2 цитаты найдено</span>
@@ -1601,7 +1614,7 @@
 <section class="not-for">
   <div class="container">
     <div class="not-for-inner">
-      <span class="eyebrow" style="font-family: 'Geist Mono', monospace; font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; margin-bottom: 16px; display: block;">Честно</span>
+      <span class="eyebrow">Честно</span>
       <h2>Кому я <span style="color: var(--accent);">не</span> подойду.</h2>
       <p class="lede">Лучше честно сказать сразу, чем зайти в проект с неправильными ожиданиями. Если попадаете в один из этих случаев — подскажу, к кому пойти.</p>
 
@@ -1707,9 +1720,7 @@
     <div class="cta-section">
       <h2><span class="grad">Расскажите, что нужно собрать.</span></h2>
       <p>20 минут разговора — и через день у вас на руках план: что именно делаем, как устроено внутри, точный срок и цена. Без предоплаты, без обязательств.</p>
-      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;">
-        <a href="#" class="btn btn-primary" data-modal-open>Оставить задачу <span class="arr">→</span></a>
-      </div>
+      <a href="#" class="btn btn-primary" data-modal-open>Оставить задачу <span class="arr">→</span></a>
       <div class="cta-meta">обычно отвечаю в течение 2 часов · пн–пт · MSK</div>
     </div>
   </div>
@@ -1868,6 +1879,24 @@
         submitBtn.innerHTML = submitBtnHTML;
       }
     });
+  })();
+
+  // Staggered reveal of .idx numbers when "Что я строю" enters viewport
+  (function() {
+    var grid = document.querySelector('.solutions');
+    if (!grid || !('IntersectionObserver' in window)) {
+      if (grid) grid.classList.add('in-view');
+      return;
+    }
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          grid.classList.add('in-view');
+          obs.disconnect();
+        }
+      });
+    }, { threshold: 0.2 });
+    obs.observe(grid);
   })();
 
   // Hero orbs — Fibonacci-sphere particles with cursor repulsion
