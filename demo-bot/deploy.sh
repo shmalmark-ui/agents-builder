@@ -1,16 +1,16 @@
 #!/bin/bash
 # Деплой demo-бота на сервер.
-# Запускать из /demo-bot/ — секреты в ../.deploy.env (см. .deploy.env.example).
+# Запускать из /demo-bot/ — секреты в ./.deploy.env (см. .deploy.env.example).
 set -e
 
 cd "$(dirname "$0")"
 
-if [ ! -f ../.deploy.env ]; then
-  echo "✗ Нет ../.deploy.env. Скопируйте .deploy.env.example и заполните."
+if [ ! -f ./.deploy.env ]; then
+  echo "✗ Нет ./.deploy.env. Скопируйте .deploy.env.example и заполните."
   exit 1
 fi
 set -a
-. ../.deploy.env
+. ./.deploy.env
 set +a
 
 : "${TELEGRAM_TOKEN:?нужно задать TELEGRAM_TOKEN в .deploy.env}"
