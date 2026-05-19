@@ -12,11 +12,9 @@ COPY knowledge.py .
 COPY main.py .
 
 VOLUME ["/data"]
+EXPOSE 8000
 
-HEALTHCHECK --interval=60s --timeout=10s --start-period=20s --retries=3 \
-  CMD python -c "import os, json, pathlib; \
-    p = pathlib.Path(os.environ.get('DATA_DIR', '/data')) / 'state.json'; \
-    print('ok' if not p.exists() or json.loads(p.read_text()) is not None else 'bad')" \
-    || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -fsS --max-time 3 http://127.0.0.1:8000/health > /dev/null || exit 1
 
 CMD ["python", "main.py"]
