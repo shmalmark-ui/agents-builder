@@ -408,26 +408,30 @@ async def cmd_reset(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 # ============== MAIN ==============
 
 def main() -> None:
-    # RU-server → api.telegram.org route is slow/flaky. Default 5s timeouts
-    # cause replies to fail silently. Bump to 30s and increase pool.
+    # RU-server → api.telegram.org route can hang on HTTP/2 negotiation
+    # even though curl over HTTP/1.1 succeeds in ms. Force HTTP/1.1 and
+    # bump timeouts to survive flaky moments.
     request = HTTPXRequest(
         connection_pool_size=16,
         connect_timeout=30.0,
         read_timeout=30.0,
         write_timeout=30.0,
         pool_timeout=30.0,
+        http_version="1.1",
+    )
+    get_updates_request = HTTPXRequest(
+        connection_pool_size=8,
+        connect_timeout=30.0,
+        read_timeout=30.0,
+        write_timeout=30.0,
+        pool_timeout=30.0,
+        http_version="1.1",
     )
     app = (
         Application.builder()
         .token(TELEGRAM_TOKEN)
         .request(request)
-        .get_updates_request(HTTPXRequest(
-            connection_pool_size=8,
-            connect_timeout=30.0,
-            read_timeout=30.0,
-            write_timeout=30.0,
-            pool_timeout=30.0,
-        ))
+        .get_updates_request(get_updates_request)
         .build()
     )
 
