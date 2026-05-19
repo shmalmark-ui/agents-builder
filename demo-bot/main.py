@@ -2,25 +2,37 @@
 agents-builder.ru — demo bot
 Meta-bot that answers questions about the agents-builder.ru service itself.
 
-Architecture:
-- python-telegram-bot v21 (async) long-polling
-- OpenAI-compatible SDK pointed at vsegpt.ru as LLM gateway (Claude under the hood)
-- Streaming responses via message editing
-- Inline keyboard menu on /start
-- Tool calling for lead capture → forwards to owner Telegram
-- File-based state for owner_chat_id + per-chat history
+WEBHOOK MODE:
+Telegram pushes updates to https://agents-builder.ru/demo-bot/webhook,
+routed by Traefik to this container's FastAPI on port 8000.
+Polling DOES NOT work reliably from the user's RU VPS (api.telegram.org
+long-poll hangs over HTTP/2 even though short HTTPS requests succeed
+in ~150ms), so the bot receives updates inbound only. Outbound replies
+via short sendMessage calls still work fine.
+
+Stack:
+- FastAPI + uvicorn (FastAPI receives Telegram's POST → feeds into
+  python-telegram-bot Application.process_update)
+- OpenAI SDK pointed at vsegpt.ru (Claude under the hood, RU rubles)
+- Streaming via Telegram message editing
+- Tool calling for lead capture → forwards to OWNER_USERNAME DM
+- File-based state in /data for owner_chat_id + per-chat history
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
+import secrets
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from openai import AsyncOpenAI
-from openai import APIError, APIConnectionError, RateLimitError
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request
+from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -52,6 +64,16 @@ LLM_API_KEY = os.environ["LLM_API_KEY"]
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.vsegpt.ru/v1")
 LLM_MODEL = os.environ.get("LLM_MODEL", "anthropic/claude-sonnet-4.6")
 OWNER_USERNAME = os.environ.get("OWNER_USERNAME", "Linprimee").lstrip("@")
+
+# Webhook config — full external URL that Telegram should POST to.
+# Path /demo-bot is the Traefik route on the site domain.
+WEBHOOK_BASE_URL = os.environ.get(
+    "WEBHOOK_BASE_URL", "https://agents-builder.ru/demo-bot"
+).rstrip("/")
+WEBHOOK_PATH = "/webhook"  # internal FastAPI route
+WEBHOOK_URL = f"{WEBHOOK_BASE_URL}{WEBHOOK_PATH}"
+WEBHOOK_PORT = int(os.environ.get("PORT", "8000"))
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET") or secrets.token_urlsafe(24)
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -94,6 +116,15 @@ SYSTEM_PROMPT = f"""Ты — демо-бот для сайта agents-builder.ru
 - Прямой: говори по делу, не растекайся
 - Эмодзи — умеренно, только функциональные (💬 📅 📚 🛠 👉 ✓)
 - На «вы», но не натянуто
+
+# Структура ответов
+
+- **Краткость:** типовой ответ — 3-5 предложений. Если задают «расскажи про всё подряд» — короткий обзор, не простыня
+- **Болды** на ключевые слова и названия продуктов: «**Бот поддержки в Telegram**»
+- **Списки** для перечислений (3+ пунктов): `• ...`
+- Цены и сроки выделяй: «**от 80 000 ₽**, срок **10 дней**»
+- В конце развёрнутого ответа — мягкий CTA: «хотите обсудить детали — оставьте контакт»
+- Пустые строки между абзацами для воздуха
 
 # Что ты НЕ делаешь
 
@@ -160,10 +191,25 @@ LEAD_TOOL = {
 # ============== WELCOME ==============
 
 WELCOME_TEXT = (
-    "👋 Привет. Я *демо-бот* сайта *agents-builder.ru* — живой пример того, "
-    "что умеет соло-разработчик, который делает ИИ-агентов под ключ.\n\n"
-    "Спросите меня про *услуги, цены, сроки, процесс* — отвечу на основе сайта. "
-    "Или ткните в кнопку ниже:"
+    "👋 Привет!\n\n"
+    "Я — *демо-бот сайта* [agents-builder.ru](https://agents-builder.ru), "
+    "живой пример того, что умеет соло-разработчик ИИ-агентов под ключ.\n\n"
+    "*Что я могу:*\n"
+    "• Ответить про услуги, цены, сроки, процесс\n"
+    "• Помочь понять подойдёт ли вам бот / агент / помощник по докам\n"
+    "• Собрать заявку и передать разработчику в личку\n\n"
+    "Ткните в кнопку ниже или просто напишите вопрос ↓"
+)
+
+HELP_TEXT = (
+    "*Команды бота*\n\n"
+    "/start — приветствие и кнопки быстрых вопросов\n"
+    "/reset — очистить историю диалога и начать заново\n"
+    "/help — это сообщение\n\n"
+    "*Как пользоваться*\n\n"
+    "Просто пишите вопрос текстом — я отвечу на основе сайта "
+    "agents-builder.ru. Хотите обсудить вашу задачу — я соберу "
+    "имя, контакт, краткое описание и передам разработчику."
 )
 
 WELCOME_KEYBOARD = InlineKeyboardMarkup([
@@ -194,7 +240,6 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     chat_id = update.effective_chat.id
 
-    # Auto-detect owner on first interaction
     if user.username and user.username.lower() == OWNER_USERNAME.lower():
         if STATE.get("owner_chat_id") != chat_id:
             STATE["owner_chat_id"] = chat_id
@@ -205,7 +250,6 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
                 "Лиды от посетителей будут прилетать сюда.",
             )
 
-    # Reset conversation history for this chat
     STATE.setdefault("conversations", {})[str(chat_id)] = []
     save_state()
 
@@ -251,16 +295,14 @@ async def answer_question(
 ) -> None:
     bot = ctx.bot
 
-    # Conversation history (only user/assistant messages — system added per call)
     history = STATE.setdefault("conversations", {}).setdefault(str(chat_id), [])
     history.append({"role": "user", "content": user_message})
-    # Keep last 12 messages (6 turns) to control tokens
     history = history[-12:]
     STATE["conversations"][str(chat_id)] = history
 
     await bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
 
-    placeholder = await bot.send_message(chat_id=chat_id, text="…")
+    placeholder = await bot.send_message(chat_id=chat_id, text="💭 _Думаю над ответом…_", parse_mode=ParseMode.MARKDOWN)
     accumulated_text = ""
     last_edit_len = 0
     tool_call_name: str | None = None
@@ -283,14 +325,12 @@ async def answer_question(
                 continue
             delta = chunk.choices[0].delta
 
-            # Text streaming
             if getattr(delta, "content", None):
                 accumulated_text += delta.content
                 if len(accumulated_text) - last_edit_len >= 40:
                     await _safe_edit(placeholder, accumulated_text)
                     last_edit_len = len(accumulated_text)
 
-            # Tool call streaming (OpenAI streams tool_calls in deltas)
             if getattr(delta, "tool_calls", None):
                 for tc in delta.tool_calls:
                     if tc.function:
@@ -299,7 +339,6 @@ async def answer_question(
                         if tc.function.arguments:
                             tool_call_args_buf += tc.function.arguments
 
-        # Final flush
         if accumulated_text:
             await _safe_edit(placeholder, accumulated_text)
             history.append({"role": "assistant", "content": accumulated_text})
@@ -311,7 +350,6 @@ async def answer_question(
             )
             return
 
-        # Lead-capture tool call
         if tool_call_name == "capture_lead" and tool_call_args_buf:
             try:
                 lead = json.loads(tool_call_args_buf)
@@ -334,7 +372,6 @@ async def answer_question(
 
 
 async def _safe_edit(msg, text: str) -> None:
-    """Try editing with Markdown, fall back to plain on parse error."""
     try:
         await msg.edit_text(text, parse_mode=ParseMode.MARKDOWN)
     except Exception:
@@ -351,7 +388,6 @@ async def forward_lead(
     source_user,
     source_chat_id: int,
 ) -> None:
-    """Forward the lead to the owner's Telegram and confirm to the visitor."""
     owner_chat_id = STATE.get("owner_chat_id")
     name = lead.get("name", "не указано")
     contact = lead.get("contact", "—")
@@ -388,11 +424,12 @@ async def forward_lead(
     await ctx.bot.send_message(
         chat_id=source_chat_id,
         text=(
-            f"✓ Принял.\n\n"
-            f"*Имя:* {name}\n"
-            f"*Контакт:* {contact}\n"
-            f"*Задача:* {task}\n\n"
-            f"Разработчик увидит сообщение и ответит вам напрямую в течение дня."
+            f"✅ *Заявка принята*\n\n"
+            f"▸ *Имя:* {name}\n"
+            f"▸ *Контакт:* {contact}\n"
+            f"▸ *Задача:* {task}\n\n"
+            f"Разработчик увидит её сразу и свяжется с вами в течение рабочего дня. "
+            f"Спасибо!"
         ),
         parse_mode=ParseMode.MARKDOWN,
     )
@@ -402,60 +439,136 @@ async def cmd_reset(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     STATE.setdefault("conversations", {})[str(chat_id)] = []
     save_state()
-    await update.message.reply_text("История очищена. Начинаем заново.")
+    await update.message.reply_text("🔄 История очищена. Начинаем заново — задавайте любой вопрос.")
 
 
-# ============== MAIN ==============
+async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(HELP_TEXT, parse_mode=ParseMode.MARKDOWN)
 
-def main() -> None:
-    # RU-server → api.telegram.org route can hang on HTTP/2 negotiation
-    # even though curl over HTTP/1.1 succeeds in ms. Force HTTP/1.1 and
-    # bump timeouts to survive flaky moments.
-    request = HTTPXRequest(
+
+# ============== TELEGRAM APP (webhook-mode) ==============
+
+# Custom request with HTTP/1.1 — RU server can't reliably do HTTP/2 long sessions
+# to api.telegram.org, but short sendMessage calls over HTTP/1.1 work fine.
+def _make_request() -> HTTPXRequest:
+    return HTTPXRequest(
         connection_pool_size=16,
-        connect_timeout=30.0,
-        read_timeout=30.0,
-        write_timeout=30.0,
-        pool_timeout=30.0,
+        connect_timeout=20.0,
+        read_timeout=20.0,
+        write_timeout=20.0,
+        pool_timeout=20.0,
         http_version="1.1",
-    )
-    get_updates_request = HTTPXRequest(
-        connection_pool_size=8,
-        connect_timeout=30.0,
-        read_timeout=30.0,
-        write_timeout=30.0,
-        pool_timeout=30.0,
-        http_version="1.1",
-    )
-    app = (
-        Application.builder()
-        .token(TELEGRAM_TOKEN)
-        .request(request)
-        .get_updates_request(get_updates_request)
-        .build()
     )
 
-    app.add_handler(CommandHandler("start", cmd_start))
-    app.add_handler(CommandHandler("reset", cmd_reset))
-    app.add_handler(CallbackQueryHandler(cb_quick_question, pattern=r"^q:"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, msg_text))
+
+bot_app = (
+    Application.builder()
+    .token(TELEGRAM_TOKEN)
+    .request(_make_request())
+    .updater(None)  # webhook mode — no Updater
+    .build()
+)
+
+bot_app.add_handler(CommandHandler("start", cmd_start))
+bot_app.add_handler(CommandHandler("reset", cmd_reset))
+bot_app.add_handler(CommandHandler("help", cmd_help))
+bot_app.add_handler(CallbackQueryHandler(cb_quick_question, pattern=r"^q:"))
+bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, msg_text))
+
+
+# ============== FASTAPI ==============
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Initialize Telegram Application and register webhook on startup."""
+    await bot_app.initialize()
+    await bot_app.start()
 
     log.info(
-        "Starting demo-bot. owner_username=%s owner_chat_id=%s model=%s base_url=%s",
+        "Setting Telegram webhook → %s (secret length=%d)",
+        WEBHOOK_URL,
+        len(WEBHOOK_SECRET),
+    )
+    await bot_app.bot.set_webhook(
+        url=WEBHOOK_URL,
+        secret_token=WEBHOOK_SECRET,
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+    )
+    log.info(
+        "demo-bot ready. owner=%s owner_chat_id=%s model=%s base_url=%s",
         OWNER_USERNAME,
         STATE.get("owner_chat_id"),
         LLM_MODEL,
         LLM_BASE_URL,
     )
-    # Short long-poll timeout + drop pending so we don't replay stale /starts
-    # from previous crashy sessions, and stuck polls die fast.
-    app.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        timeout=10,
-        poll_interval=0.5,
-        bootstrap_retries=5,
-        drop_pending_updates=True,
+
+    yield
+
+    log.info("Shutting down — removing webhook")
+    try:
+        await bot_app.bot.delete_webhook(drop_pending_updates=False)
+    except Exception:
+        log.exception("Failed to delete webhook on shutdown")
+    await bot_app.stop()
+    await bot_app.shutdown()
+
+
+api = FastAPI(title="agents-builder demo-bot", docs_url=None, redoc_url=None, lifespan=lifespan)
+
+
+@api.get("/health")
+async def health() -> dict[str, Any]:
+    return {
+        "ok": True,
+        "owner_configured": STATE.get("owner_chat_id") is not None,
+        "model": LLM_MODEL,
+    }
+
+
+@api.post(WEBHOOK_PATH)
+async def telegram_webhook(request: Request) -> dict[str, bool]:
+    secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+    if secret != WEBHOOK_SECRET:
+        log.warning("Webhook request with bad secret (len=%d)", len(secret))
+        raise HTTPException(status_code=403, detail="bad secret")
+
+    try:
+        data = await request.json()
+    except Exception:
+        log.exception("Failed to parse webhook body")
+        raise HTTPException(status_code=400, detail="bad json")
+
+    update = Update.de_json(data, bot_app.bot)
+    if update is None:
+        return {"ok": True}
+
+    # Process in background — Telegram only waits ~60s and we want to ack fast
+    asyncio.create_task(_process_update(update))
+    return {"ok": True}
+
+
+async def _process_update(update: Update) -> None:
+    try:
+        await bot_app.process_update(update)
+    except Exception:
+        log.exception("process_update failed for update_id=%s", update.update_id)
+
+
+# ============== MAIN ==============
+
+def main() -> None:
+    config = uvicorn.Config(
+        api,
+        host="0.0.0.0",
+        port=WEBHOOK_PORT,
+        log_level="info",
+        access_log=False,
+        proxy_headers=True,
+        forwarded_allow_ips="*",
     )
+    server = uvicorn.Server(config)
+    asyncio.run(server.serve())
 
 
 if __name__ == "__main__":
