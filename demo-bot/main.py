@@ -447,7 +447,15 @@ def main() -> None:
         LLM_MODEL,
         LLM_BASE_URL,
     )
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Short long-poll timeout + drop pending so we don't replay stale /starts
+    # from previous crashy sessions, and stuck polls die fast.
+    app.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        timeout=10,
+        poll_interval=0.5,
+        bootstrap_retries=5,
+        drop_pending_updates=True,
+    )
 
 
 if __name__ == "__main__":
