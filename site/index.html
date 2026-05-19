@@ -717,13 +717,28 @@
   .live-demo:hover .live-demo__cta .arr { transform: translateX(4px); }
 
   .demos-lead {
-    font-size: 14px;
-    color: var(--ink-muted);
-    margin: 0 0 20px;
+    font-size: 13px;
+    color: var(--ink-secondary);
+    margin: 28px 0 18px;
+    padding-left: 32px;
+    text-align: left;
     font-family: 'Geist Mono', monospace;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     font-weight: 500;
+  }
+  .demos-lead .arr {
+    color: var(--accent);
+    margin-left: 8px;
+    display: inline-block;
+    animation: demos-arr-bob 2.4s ease-in-out infinite;
+  }
+  @keyframes demos-arr-bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(3px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .demos-lead .arr { animation: none; }
   }
 
   .demos { display: grid; grid-template-columns: 1fr; gap: 24px; }
@@ -1516,7 +1531,7 @@
       </a>
     </div>
 
-    <p class="demos-lead">Ниже — ещё три типа агентов, которых я собираю клиентам:</p>
+    <p class="demos-lead">Ещё три типа агентов <span class="arr">↓</span></p>
 
     <div class="demos">
       <div class="demo spotlight">
