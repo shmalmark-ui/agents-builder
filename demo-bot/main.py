@@ -3,12 +3,12 @@ agents-builder.ru — demo bot
 Meta-bot that answers questions about the agents-builder.ru service itself.
 
 Architecture:
-- python-telegram-bot v21 (async) with long polling
-- anthropic SDK with claude-sonnet-4-6 model
+- python-telegram-bot v21 (async) long-polling
+- OpenAI-compatible SDK pointed at vsegpt.ru as LLM gateway (Claude under the hood)
 - Streaming responses via message editing
 - Inline keyboard menu on /start
 - Tool calling for lead capture → forwards to owner Telegram
-- File-based state for owner_chat_id persistence
+- File-based state for owner_chat_id + per-chat history
 """
 
 from __future__ import annotations
@@ -19,7 +19,8 @@ import os
 from pathlib import Path
 from typing import Any
 
-import anthropic
+from openai import AsyncOpenAI
+from openai import APIError, APIConnectionError, RateLimitError
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -46,15 +47,16 @@ logging.basicConfig(
 log = logging.getLogger("demo-bot")
 
 TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
+LLM_API_KEY = os.environ["LLM_API_KEY"]
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.vsegpt.ru/v1")
+LLM_MODEL = os.environ.get("LLM_MODEL", "anthropic/claude-sonnet-4.6")
 OWNER_USERNAME = os.environ.get("OWNER_USERNAME", "Linprimee").lstrip("@")
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 STATE_FILE = DATA_DIR / "state.json"
 
-claude = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+llm = AsyncOpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
 
 
 # ============== STATE ==============
@@ -105,7 +107,7 @@ SYSTEM_PROMPT = f"""Ты — демо-бот для сайта agents-builder.ru
 
 «Чтобы передать вашу задачу разработчику — кратко опишите: что нужно сделать, и как с вами связаться (Telegram-юзернейм или email). Передам и он ответит в личке.»
 
-Когда клиент даст контакт и описание задачи — **вызови инструмент capture_lead** с тремя полями: имя (если назвал, иначе «не указано»), контакт, задача. После вызова инструмента ответь клиенту что заявка передана.
+Когда клиент даст контакт и описание задачи — **вызови функцию capture_lead** с тремя полями: имя (если назвал, иначе «не указано»), контакт, задача. После вызова функции ответь клиенту что заявка передана.
 
 # Форматирование
 
@@ -125,25 +127,31 @@ SYSTEM_PROMPT = f"""Ты — демо-бот для сайта agents-builder.ru
 
 
 LEAD_TOOL = {
-    "name": "capture_lead",
-    "description": "Вызови когда клиент явно хочет заказать и предоставил имя/контакт/описание задачи. После вызова разработчик получит лид в Telegram-личку.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "name": {
-                "type": "string",
-                "description": "Имя клиента или 'не указано' если не назвал",
+    "type": "function",
+    "function": {
+        "name": "capture_lead",
+        "description": (
+            "Вызови когда клиент явно хочет заказать и предоставил имя/контакт/описание задачи. "
+            "После вызова разработчик получит лид в Telegram-личку."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Имя клиента или 'не указано' если не назвал",
+                },
+                "contact": {
+                    "type": "string",
+                    "description": "Telegram-юзернейм, email, или телефон",
+                },
+                "task": {
+                    "type": "string",
+                    "description": "Краткое описание задачи клиента (1-3 предложения)",
+                },
             },
-            "contact": {
-                "type": "string",
-                "description": "Telegram-юзернейм, email, или телефон",
-            },
-            "task": {
-                "type": "string",
-                "description": "Краткое описание задачи клиента (1-3 предложения)",
-            },
+            "required": ["name", "contact", "task"],
         },
-        "required": ["name", "contact", "task"],
     },
 }
 
@@ -213,7 +221,6 @@ async def cb_quick_question(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> N
     question = QUICK_QUESTIONS.get(query.data)
     if not question:
         return
-    # Treat the quick-question tap as if the user typed it
     await answer_question(
         chat_id=query.message.chat_id,
         user_message=question,
@@ -243,89 +250,97 @@ async def answer_question(
 ) -> None:
     bot = ctx.bot
 
-    # Conversation history per chat (kept short to control tokens)
+    # Conversation history (only user/assistant messages — system added per call)
     history = STATE.setdefault("conversations", {}).setdefault(str(chat_id), [])
     history.append({"role": "user", "content": user_message})
-    history = history[-12:]  # last 6 turns
+    # Keep last 12 messages (6 turns) to control tokens
+    history = history[-12:]
+    STATE["conversations"][str(chat_id)] = history
 
-    # Show typing indicator
     await bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
 
-    # Start with an empty placeholder message we'll edit as text streams
     placeholder = await bot.send_message(chat_id=chat_id, text="…")
-    accumulated = ""
+    accumulated_text = ""
     last_edit_len = 0
-    tool_use_block: dict[str, Any] | None = None
+    tool_call_name: str | None = None
+    tool_call_args_buf = ""
 
     try:
-        async with claude.messages.stream(
-            model=MODEL,
-            max_tokens=1024,
-            system=SYSTEM_PROMPT,
+        messages_for_llm = [{"role": "system", "content": SYSTEM_PROMPT}] + history
+
+        stream = await llm.chat.completions.create(
+            model=LLM_MODEL,
+            messages=messages_for_llm,
             tools=[LEAD_TOOL],
-            messages=history,
-        ) as stream:
-            async for event in stream:
-                if event.type == "content_block_delta" and event.delta.type == "text_delta":
-                    accumulated += event.delta.text
-                    # Throttle edits: only update when ≥40 new chars or stream is winding down
-                    if len(accumulated) - last_edit_len >= 40:
-                        try:
-                            await placeholder.edit_text(accumulated, parse_mode=ParseMode.MARKDOWN)
-                            last_edit_len = len(accumulated)
-                        except Exception:
-                            # Markdown parse error → fall back to plain
-                            try:
-                                await placeholder.edit_text(accumulated)
-                                last_edit_len = len(accumulated)
-                            except Exception:
-                                pass
+            stream=True,
+            max_tokens=1024,
+            temperature=0.7,
+        )
 
-            # Final message after stream completes
-            final_message = await stream.get_final_message()
+        async for chunk in stream:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
 
-            # Check if Claude called the lead-capture tool
-            for block in final_message.content:
-                if block.type == "tool_use" and block.name == "capture_lead":
-                    tool_use_block = {
-                        "id": block.id,
-                        "input": block.input,
-                    }
+            # Text streaming
+            if getattr(delta, "content", None):
+                accumulated_text += delta.content
+                if len(accumulated_text) - last_edit_len >= 40:
+                    await _safe_edit(placeholder, accumulated_text)
+                    last_edit_len = len(accumulated_text)
 
-        # Send final text version (markdown or plain)
-        if accumulated:
-            try:
-                await placeholder.edit_text(accumulated, parse_mode=ParseMode.MARKDOWN)
-            except Exception:
-                try:
-                    await placeholder.edit_text(accumulated)
-                except Exception:
-                    pass
-            history.append({"role": "assistant", "content": accumulated})
+            # Tool call streaming (OpenAI streams tool_calls in deltas)
+            if getattr(delta, "tool_calls", None):
+                for tc in delta.tool_calls:
+                    if tc.function:
+                        if tc.function.name:
+                            tool_call_name = tc.function.name
+                        if tc.function.arguments:
+                            tool_call_args_buf += tc.function.arguments
+
+        # Final flush
+        if accumulated_text:
+            await _safe_edit(placeholder, accumulated_text)
+            history.append({"role": "assistant", "content": accumulated_text})
+            STATE["conversations"][str(chat_id)] = history[-12:]
             save_state()
-        elif not tool_use_block:
-            # No text and no tool — likely an error
+        elif not tool_call_name:
             await placeholder.edit_text(
                 "Хм, что-то задумался. Перепишите вопрос ещё раз, пожалуйста.",
             )
             return
 
-        # Handle lead capture
-        if tool_use_block:
-            lead = tool_use_block["input"]
-            await forward_lead(
-                ctx=ctx,
-                lead=lead,
-                source_user=user,
-                source_chat_id=chat_id,
-            )
+        # Lead-capture tool call
+        if tool_call_name == "capture_lead" and tool_call_args_buf:
+            try:
+                lead = json.loads(tool_call_args_buf)
+                await forward_lead(
+                    ctx=ctx,
+                    lead=lead,
+                    source_user=user,
+                    source_chat_id=chat_id,
+                )
+            except json.JSONDecodeError:
+                log.exception("Failed to parse lead args: %s", tool_call_args_buf)
 
-    except anthropic.APIError as e:
-        log.exception("Claude API error: %s", e)
-        await placeholder.edit_text(
-            "Извините, не получилось ответить — модель временно недоступна. "
-            "Попробуйте через минуту или напишите напрямую: agents-builder.ru",
+    except (APIError, APIConnectionError, RateLimitError) as e:
+        log.exception("LLM API error: %s", e)
+        await _safe_edit(
+            placeholder,
+            "Извините, модель временно недоступна. Попробуйте через минуту "
+            "или откройте сайт напрямую: agents-builder.ru",
         )
+
+
+async def _safe_edit(msg, text: str) -> None:
+    """Try editing with Markdown, fall back to plain on parse error."""
+    try:
+        await msg.edit_text(text, parse_mode=ParseMode.MARKDOWN)
+    except Exception:
+        try:
+            await msg.edit_text(text)
+        except Exception:
+            pass
 
 
 async def forward_lead(
@@ -335,7 +350,7 @@ async def forward_lead(
     source_user,
     source_chat_id: int,
 ) -> None:
-    """Forward the lead to the owner's Telegram and notify the visitor."""
+    """Forward the lead to the owner's Telegram and confirm to the visitor."""
     owner_chat_id = STATE.get("owner_chat_id")
     name = lead.get("name", "не указано")
     contact = lead.get("contact", "—")
@@ -351,7 +366,7 @@ async def forward_lead(
             f"*Имя:* {name}\n"
             f"*Контакт:* {contact}\n"
             f"*Задача:* {task}\n\n"
-            f"_От: {visitor_handle}, chat_id={source_chat_id}_"
+            f"_От: {visitor_handle}, chat\\_id={source_chat_id}_"
         )
         try:
             await ctx.bot.send_message(
@@ -369,7 +384,6 @@ async def forward_lead(
             lead,
         )
 
-    # Confirm to the visitor
     await ctx.bot.send_message(
         chat_id=source_chat_id,
         text=(
@@ -401,10 +415,11 @@ def main() -> None:
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, msg_text))
 
     log.info(
-        "Starting demo-bot. owner_username=%s owner_chat_id=%s model=%s",
+        "Starting demo-bot. owner_username=%s owner_chat_id=%s model=%s base_url=%s",
         OWNER_USERNAME,
         STATE.get("owner_chat_id"),
-        MODEL,
+        LLM_MODEL,
+        LLM_BASE_URL,
     )
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 

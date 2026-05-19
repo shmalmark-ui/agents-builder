@@ -1,2 +1,2 @@
 python-telegram-bot==21.7
-anthropic==0.42.0
+openai>=1.50.0
