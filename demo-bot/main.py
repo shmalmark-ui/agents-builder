@@ -35,6 +35,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from telegram.request import HTTPXRequest
 
 from knowledge import KNOWLEDGE
 
@@ -407,7 +408,28 @@ async def cmd_reset(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 # ============== MAIN ==============
 
 def main() -> None:
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    # RU-server → api.telegram.org route is slow/flaky. Default 5s timeouts
+    # cause replies to fail silently. Bump to 30s and increase pool.
+    request = HTTPXRequest(
+        connection_pool_size=16,
+        connect_timeout=30.0,
+        read_timeout=30.0,
+        write_timeout=30.0,
+        pool_timeout=30.0,
+    )
+    app = (
+        Application.builder()
+        .token(TELEGRAM_TOKEN)
+        .request(request)
+        .get_updates_request(HTTPXRequest(
+            connection_pool_size=8,
+            connect_timeout=30.0,
+            read_timeout=30.0,
+            write_timeout=30.0,
+            pool_timeout=30.0,
+        ))
+        .build()
+    )
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("reset", cmd_reset))
