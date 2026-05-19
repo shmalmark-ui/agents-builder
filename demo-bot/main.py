@@ -222,6 +222,9 @@ WELCOME_KEYBOARD = InlineKeyboardMarkup([
         InlineKeyboardButton("⚙️ Как идёт работа?", callback_data="q:process"),
     ],
     [
+        InlineKeyboardButton("📝 Оставить заявку", callback_data="lead:start"),
+    ],
+    [
         InlineKeyboardButton("🌐 Открыть сайт", url="https://agents-builder.ru"),
     ],
 ])
@@ -232,6 +235,17 @@ QUICK_QUESTIONS = {
     "q:timeline": "За какой срок вы делаете бот? Опишите этапы.",
     "q:process": "Как происходит работа от первой беседы до запуска?",
 }
+
+LEAD_INTAKE_TEXT = (
+    "📝 *Оставьте заявку*\n\n"
+    "Напишите *одним сообщением* три пункта:\n\n"
+    "1. *Что нужно сделать* — кратко, в 1-2 предложениях\n"
+    "2. *Как с вами связаться* — Telegram-юзернейм или email\n"
+    "3. *Как обращаться* — имя\n\n"
+    "_Пример:_ «Нужен бот поддержки для интернет-магазина, около 50 типовых вопросов. "
+    "Контакт: @ivan\\_test. Имя — Иван.»\n\n"
+    "Как только пришлёте — передам разработчику в личку, он ответит в течение рабочего дня."
+)
 
 
 # ============== HANDLERS ==============
@@ -271,6 +285,19 @@ async def cb_quick_question(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> N
         user_message=question,
         ctx=ctx,
         user=query.from_user,
+    )
+
+
+async def cb_lead_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    """User clicked '📝 Оставить заявку' — show the intake prompt without
+    hitting Claude. Their next message will be processed normally, and
+    Claude will call capture_lead via tool use when it sees task+contact+name."""
+    query = update.callback_query
+    await query.answer()
+    await ctx.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=LEAD_INTAKE_TEXT,
+        parse_mode=ParseMode.MARKDOWN,
     )
 
 
@@ -473,6 +500,7 @@ bot_app.add_handler(CommandHandler("start", cmd_start))
 bot_app.add_handler(CommandHandler("reset", cmd_reset))
 bot_app.add_handler(CommandHandler("help", cmd_help))
 bot_app.add_handler(CallbackQueryHandler(cb_quick_question, pattern=r"^q:"))
+bot_app.add_handler(CallbackQueryHandler(cb_lead_start, pattern=r"^lead:start$"))
 bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, msg_text))
 
 
