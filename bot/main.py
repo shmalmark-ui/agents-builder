@@ -44,6 +44,10 @@ ALLOWED_ORIGINS = os.environ.get(
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 STATE_FILE = DATA_DIR / "state.json"
+# Hard-locked owner from env. If set, overrides state.json and protects against
+# the entire data volume being wiped — bot still knows whom to listen to.
+_owner_env = os.environ.get("OWNER_CHAT_ID")
+OWNER_CHAT_ID_ENV: int | None = int(_owner_env) if _owner_env and _owner_env.strip() else None
 RATE_WINDOW_SECONDS = 60
 RATE_MAX_PER_WINDOW = 5
 MSK = timezone(timedelta(hours=3))
@@ -82,6 +86,12 @@ def save_state() -> None:
 
 STATE = load_state()
 RATE_LIMITS: dict[str, list[float]] = {}
+
+# Env override wins: if OWNER_CHAT_ID is set, force state to match.
+if OWNER_CHAT_ID_ENV is not None and STATE.get("owner_chat_id") != OWNER_CHAT_ID_ENV:
+    log.info("OWNER_CHAT_ID env override → setting state owner_chat_id=%s", OWNER_CHAT_ID_ENV)
+    STATE["owner_chat_id"] = OWNER_CHAT_ID_ENV
+    save_state()
 
 
 def next_id() -> int:

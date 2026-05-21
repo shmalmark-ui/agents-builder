@@ -180,6 +180,50 @@
     stroke: currentColor;
     stroke-width: 1.4;
   }
+
+  /* ============ BRAND MARK ANIMATION (nav + footer) ============ */
+  .nav-brand .mark .mark-o,
+  .footer-brand .mark .mark-o {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: brand-draw 0.9s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+  .nav-brand .mark .mark-o:nth-of-type(1),
+  .footer-brand .mark .mark-o:nth-of-type(1) { animation-delay: 0.15s; }
+  .nav-brand .mark .mark-o:nth-of-type(2),
+  .footer-brand .mark .mark-o:nth-of-type(2) { animation-delay: 0.32s; }
+  .nav-brand .mark .mark-o:nth-of-type(3),
+  .footer-brand .mark .mark-o:nth-of-type(3) { animation-delay: 0.49s; }
+  @keyframes brand-draw { to { stroke-dashoffset: 0; } }
+
+  .nav-brand .mark .mark-bg,
+  .footer-brand .mark .mark-bg {
+    transform-box: fill-box;
+    transform-origin: center;
+    opacity: 0;
+    transform: scale(0.5);
+    animation:
+      brand-pop 0.55s 0.78s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+      brand-pulse 3.2s 1.6s ease-in-out infinite;
+  }
+  @keyframes brand-pop {
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes brand-pulse {
+    0%, 100% { opacity: 0.92; }
+    50%      { opacity: 1; filter: brightness(1.18); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-brand .mark .mark-o,
+    .footer-brand .mark .mark-o,
+    .nav-brand .mark .mark-bg,
+    .footer-brand .mark .mark-bg { animation: none !important; }
+    .nav-brand .mark .mark-o,
+    .footer-brand .mark .mark-o { stroke-dashoffset: 0 !important; }
+    .nav-brand .mark .mark-bg,
+    .footer-brand .mark .mark-bg { opacity: 1 !important; transform: scale(1) !important; }
+  }
   .nav-links {
     display: flex; gap: 28px;
     font-size: 14px;
@@ -1307,9 +1351,9 @@
             <feDropShadow dx="0" dy="1.6" stdDeviation="1.4" flood-color="var(--accent)" flood-opacity="0.4"/>
           </filter>
         </defs>
-        <rect class="mark-o" x="4" y="4" width="11" height="11" rx="2"/>
-        <rect class="mark-o" x="4" y="17" width="11" height="11" rx="2"/>
-        <rect class="mark-o" x="17" y="17" width="11" height="11" rx="2"/>
+        <rect class="mark-o" x="4" y="4" width="11" height="11" rx="2" pathLength="100"/>
+        <rect class="mark-o" x="4" y="17" width="11" height="11" rx="2" pathLength="100"/>
+        <rect class="mark-o" x="17" y="17" width="11" height="11" rx="2" pathLength="100"/>
         <rect class="mark-bg" x="17" y="4" width="11" height="11" rx="2" filter="url(#navmark-glow)"/>
       </svg>
       <span>agents-builder<span class="dot">.</span>ru</span>
@@ -1912,9 +1956,9 @@
                 <feDropShadow dx="0" dy="1.6" stdDeviation="1.4" flood-color="var(--accent)" flood-opacity="0.4"/>
               </filter>
             </defs>
-            <rect class="mark-o" x="4" y="4" width="11" height="11" rx="2"/>
-            <rect class="mark-o" x="4" y="17" width="11" height="11" rx="2"/>
-            <rect class="mark-o" x="17" y="17" width="11" height="11" rx="2"/>
+            <rect class="mark-o" x="4" y="4" width="11" height="11" rx="2" pathLength="100"/>
+            <rect class="mark-o" x="4" y="17" width="11" height="11" rx="2" pathLength="100"/>
+            <rect class="mark-o" x="17" y="17" width="11" height="11" rx="2" pathLength="100"/>
             <rect class="mark-bg" x="17" y="4" width="11" height="11" rx="2" filter="url(#footermark-glow)"/>
           </svg>
           <span>agents-builder<span class="dot">.</span>ru</span>
@@ -2090,8 +2134,35 @@
     ];
 
     var snow = [];
+    var shootingStars = [];
+    var nextShootingAt = 0;
+    var stars = [];
+    var starLight = null;
+    var starDark = null;
+
+    // Pre-rendered "star" sprite: white-hot core + tight cool halo + fast falloff.
+    // 96px source ensures crisp downscale; sharp alpha curve = stellar look.
+    function makeStar(coronaRgb) {
+      var size = 48;
+      var c = document.createElement('canvas');
+      c.width = c.height = size * 2;
+      var g = c.getContext('2d');
+      var grad = g.createRadialGradient(size, size, 0, size, size, size);
+      grad.addColorStop(0,    'rgba(255, 255, 255, 1)');
+      grad.addColorStop(0.03, 'rgba(255, 255, 255, 0.95)');
+      grad.addColorStop(0.08, 'rgba(' + coronaRgb + ', 0.55)');
+      grad.addColorStop(0.18, 'rgba(' + coronaRgb + ', 0.12)');
+      grad.addColorStop(0.40, 'rgba(' + coronaRgb + ', 0.02)');
+      grad.addColorStop(1,    'rgba(' + coronaRgb + ', 0)');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, size * 2, size * 2);
+      return c;
+    }
 
     function init() {
+      starLight = makeStar('70, 100, 200');
+      starDark  = makeStar('170, 200, 255');
+
       spheres.forEach(function(s) {
         s.pts = [];
         s.cx = W * s.x; s.cy = H * s.y;
@@ -2113,10 +2184,24 @@
         snow.push({
           x: Math.random() * W,
           y: Math.random() * H,
-          vx: (0.7 + Math.random() * 0.5) * dpr,
-          vy: (0.5 + Math.random() * 0.4) * dpr,
+          vx: (0.30 + Math.random() * 0.25) * dpr,
+          vy: (0.22 + Math.random() * 0.18) * dpr,
           r:  (0.6 + Math.random() * 1.2) * dpr,
           a:  0.20 + Math.random() * 0.30
+        });
+      }
+
+      // Stationary twinkling starfield — fixed positions, individual phases
+      stars = [];
+      var starCount = 160;
+      for (var j = 0; j < starCount; j++) {
+        stars.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          r: (0.7 + Math.random() * 1.4) * dpr,
+          bright: 0.55 + Math.random() * 0.45,
+          speed: 0.5 + Math.random() * 1.6,
+          phase: Math.random() * Math.PI * 2
         });
       }
     }
@@ -2131,20 +2216,30 @@
     function colors() {
       var dark = document.documentElement.getAttribute('data-theme') === 'dark';
       return dark
-        ? { rgb: '180, 205, 255', base: 0.30, max: 0.75 }
-        : { rgb: '70, 100, 200',  base: 0.22, max: 0.55 };
+        ? { base: 0.55, max: 1.00, sprite: starDark,  additive: true,  snowA: 0.95 }
+        : { base: 0.40, max: 0.80, sprite: starLight, additive: false, snowA: 0.55 };
     }
 
     function animate(t) {
       if (document.hidden) { rafId = requestAnimationFrame(animate); return; }
-      if (t - lastFrame < 33) { if (!reduced) rafId = requestAnimationFrame(animate); return; }
       lastFrame = t;
 
       ctx.clearRect(0, 0, W, H);
       var col = colors();
 
+      if (col.additive) ctx.globalCompositeOperation = 'lighter';
+
+      // Stationary twinkling starfield (drawn first, behind everything)
+      stars.forEach(function(s) {
+        var tw = 0.55 + 0.45 * Math.sin(t * 0.001 * s.speed + s.phase);
+        var a = s.bright * tw * col.snowA;
+        var ssz = s.r * 2.6;
+        ctx.globalAlpha = a;
+        ctx.drawImage(col.sprite, s.x - ssz, s.y - ssz, ssz * 2, ssz * 2);
+      });
+
       spheres.forEach(function(sp) {
-        sp.rot += sp.speed * 16;
+        sp.rot += sp.speed * 8;
         var pts = [];
         sp.pts.forEach(function(p) {
           var th = p.theta + sp.rot;
@@ -2166,22 +2261,31 @@
           p.pushX *= 0.88; p.pushY *= 0.88; p.glow *= 0.9;
           px += p.pushX; py += p.pushY;
 
-          pts.push({ x: px, y: py, z: y3, glow: p.glow });
+          pts.push({ x: px, y: py, z: y3, glow: p.glow, theta: p.theta });
         });
 
         pts.sort(function(a, b) { return a.z - b.z; });
         pts.forEach(function(p) {
           var depth = (p.z + sp.ar) / (sp.ar * 2);
-          var a = Math.min(col.base + depth * 0.25 + p.glow, col.max);
-          var sz = (1.1 + depth * 0.7) * dpr;
+          var twinkle = 0.82 + 0.18 * Math.sin(t * 0.0019 + p.theta * 1.3);
+          var a = Math.min((col.base + depth * 0.35 + p.glow * 1.2) * twinkle, col.max);
+          var sz = (2.6 + depth * 3.4 + p.glow * 14) * dpr;
+          ctx.globalAlpha = a;
+          ctx.drawImage(col.sprite, p.x - sz, p.y - sz, sz * 2, sz * 2);
+          // sharp white core — gives crisp "point of light" look on top of halo
+          ctx.globalAlpha = 1;
+          var coreA = Math.min(a * 1.4, 0.95);
+          var coreR = Math.max(0.55, depth * 0.85 + p.glow * 1.5) * dpr;
           ctx.beginPath();
-          ctx.arc(p.x, p.y, sz, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(' + col.rgb + ',' + a.toFixed(3) + ')';
+          ctx.arc(p.x, p.y, coreR, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255, 255, 255, ' + coreA.toFixed(3) + ')';
           ctx.fill();
         });
       });
 
-      // Diagonal snowfall layer (drifts top-left → bottom-right)
+      // Background "star dust" — small twinkling specks drifting diagonally.
+      // Drawn with same sprite (smaller) for cohesive cosmos look.
+      // Additive blending stays on for dark theme, so they brighten where they overlap.
       snow.forEach(function(p) {
         if (!reduced) {
           p.x += p.vx;
@@ -2191,11 +2295,76 @@
             else { p.x = Math.random() * W * 0.7; p.y = -8; }
           }
         }
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(' + col.rgb + ',' + p.a.toFixed(3) + ')';
-        ctx.fill();
+        var ssz = p.r * 2.4;
+        ctx.globalAlpha = p.a * col.snowA;
+        ctx.drawImage(col.sprite, p.x - ssz, p.y - ssz, ssz * 2, ssz * 2);
       });
+
+      // Shooting stars: spawn with hard 7–9 second cooldown between comets.
+      if (!reduced && t >= nextShootingAt) {
+        shootingStars.push({
+          x: -W * 0.15 + Math.random() * W * 0.35,
+          y: -H * 0.1 + Math.random() * H * 0.4,
+          vx: (4.5 + Math.random() * 2.5) * dpr,
+          vy: (2.2 + Math.random() * 1.4) * dpr,
+          life: 1,
+          tail: (50 + Math.random() * 30) * dpr
+        });
+        nextShootingAt = t + 7000 + Math.random() * 2000;
+      }
+      for (var i = shootingStars.length - 1; i >= 0; i--) {
+        var ss = shootingStars[i];
+        if (!reduced) {
+          ss.x += ss.vx;
+          ss.y += ss.vy;
+          ss.life -= 0.005;
+        }
+        if (ss.life <= 0 || ss.x > W + 60 || ss.y > H + 60) {
+          shootingStars.splice(i, 1);
+          continue;
+        }
+        // Smooth envelope: fade in fast (first 12% of life), then fade out with life.
+        var spawnProgress = 1 - ss.life;
+        var fadeIn = Math.min(spawnProgress * 8, 1);
+        var headAlpha = Math.min(fadeIn * ss.life * 1.3, 1);
+        var spd = Math.sqrt(ss.vx * ss.vx + ss.vy * ss.vy);
+        var nx = ss.vx / spd, ny = ss.vy / spd;
+        var tailX = ss.x - nx * ss.tail;
+        var tailY = ss.y - ny * ss.tail;
+        // Two-layer streak: wide soft glow + narrow bright core (gives "comet" depth).
+        var lgGlow = ctx.createLinearGradient(tailX, tailY, ss.x, ss.y);
+        lgGlow.addColorStop(0,   'rgba(255,255,255,0)');
+        lgGlow.addColorStop(0.5, 'rgba(255,255,255,' + (headAlpha * 0.25) + ')');
+        lgGlow.addColorStop(1,   'rgba(255,255,255,' + (headAlpha * 0.55) + ')');
+        ctx.strokeStyle = lgGlow;
+        ctx.lineWidth = 5 * dpr;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(tailX, tailY);
+        ctx.lineTo(ss.x, ss.y);
+        ctx.stroke();
+        var lgCore = ctx.createLinearGradient(tailX, tailY, ss.x, ss.y);
+        lgCore.addColorStop(0, 'rgba(255,255,255,0)');
+        lgCore.addColorStop(1, 'rgba(255,255,255,' + headAlpha + ')');
+        ctx.strokeStyle = lgCore;
+        ctx.lineWidth = 2 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(tailX, tailY);
+        ctx.lineTo(ss.x, ss.y);
+        ctx.stroke();
+        // bright head: large halo via sprite + sharp white core
+        var hsz = 8 * dpr;
+        ctx.globalAlpha = headAlpha;
+        ctx.drawImage(col.sprite, ss.x - hsz, ss.y - hsz, hsz * 2, hsz * 2);
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(ss.x, ss.y, 2.2 * dpr, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,' + headAlpha + ')';
+        ctx.fill();
+      }
+
+      ctx.globalAlpha = 1;
+      if (col.additive) ctx.globalCompositeOperation = 'source-over';
 
       if (!reduced) rafId = requestAnimationFrame(animate);
     }
